@@ -1,19 +1,7 @@
 import { v4 } from 'uuid';
-import type { Position } from '../levelSchema';
 import { Entity } from './entities';
-import { renderFrame } from './renderer';
-
-interface EngineOptions {
-    zoomSpeed?: number;
-    minZoom?: number;
-    maxZoom?: number;
-}
-
-const DEFAULT_ENGINE_OPTIONS: Required<EngineOptions> = {
-    zoomSpeed: 0.001,
-    minZoom: 0.1,
-    maxZoom: 10,
-};
+import { RenderSystem } from './systems/render';
+import { MouseButton, type MouseState, type Position } from './types';
 
 type BrowserEvent =
     | 'mousemove'
@@ -28,8 +16,8 @@ type BrowserEvent =
 interface BrowserEventMap {
     mousemove: { x: number; y: number };
     mousewheel: { delta: number };
-    mousedown: { button: number };
-    mouseup: { button: number };
+    mousedown: { button: MouseButton };
+    mouseup: { button: MouseButton };
     mouseenter: { target: EventTarget | null; x: number; y: number };
     mouseleave: { target: EventTarget | null; x: number; y: number };
     mouseover: { from: EventTarget | null; to: EventTarget | null };
@@ -52,43 +40,40 @@ const DEFAULT_CAMERA_OPTIONS: Required<CameraState> = {
     clearColor: 'black',
 };
 
-interface MouseState extends Position {
-    onScreen: boolean;
-    leftDown: boolean;
-    leftPressed: boolean;
-    leftReleased: boolean;
-    rightDown: boolean;
-    rightPressed: boolean;
-    rightReleased: boolean;
-    middleDown: boolean;
-    middlePressed: boolean;
-    middleReleased: boolean;
+interface EngineOptions {
+    zoomSpeed?: number;
+    minZoom?: number;
+    maxZoom?: number;
+    cameraStart?: CameraState;
 }
+
+const DEFAULT_ENGINE_OPTIONS: Required<EngineOptions> = {
+    zoomSpeed: 0.001,
+    minZoom: 0.1,
+    maxZoom: 10,
+    cameraStart: { ...DEFAULT_CAMERA_OPTIONS },
+};
 
 export class Engine {
     readonly #id: string = v4();
 
-    #canvas: HTMLCanvasElement | null = null;
-    #camera: Required<CameraState>;
+    _canvas: HTMLCanvasElement | null = null;
+    _options: Required<EngineOptions> = { ...DEFAULT_ENGINE_OPTIONS };
+
+    _camera: Required<CameraState>;
+    _rootEntity: Entity;
+
+    _renderSystem: RenderSystem = new RenderSystem();
+
     #forceRender: boolean = true;
-
-    #options: Required<EngineOptions> = { ...DEFAULT_ENGINE_OPTIONS };
-
-    #rootEntity: Entity;
-
     #mouseState: MouseState = {
+        justMoved: false,
         x: 0,
         y: 0,
         onScreen: false,
-        leftDown: false,
-        leftPressed: false,
-        leftReleased: false,
-        rightDown: false,
-        rightPressed: false,
-        rightReleased: false,
-        middleDown: false,
-        middlePressed: false,
-        middleReleased: false,
+        [MouseButton.LEFT]: { down: false, pressed: false, released: false },
+        [MouseButton.MIDDLE]: { down: false, pressed: false, released: false },
+        [MouseButton.RIGHT]: { down: false, pressed: false, released: false },
     };
     #lastMouseState: MouseState = { ...this.#mouseState };
 
@@ -106,8 +91,10 @@ export class Engine {
     constructor() {
         window.engine = this;
 
-        this.#camera = { ...DEFAULT_CAMERA_OPTIONS };
-        this.#rootEntity = new Entity('root');
+        this._camera = { ...DEFAULT_CAMERA_OPTIONS, ...this._options.cameraStart };
+        this.#applyOptions(this._options);
+
+        this._rootEntity = new Entity('root');
 
         this.addBrowserEventHandler('mousedown', (_, data) =>
             this.#setMouseButtonDown(data.button, true),
@@ -120,30 +107,50 @@ export class Engine {
         this.addBrowserEventHandler('mouseleave', (_, data) => this.#setMouseOnScreen(false, data));
         this.addBrowserEventHandler('mousewheel', (_, { delta }) => this.#setMouseWheel(delta));
 
-        window.requestAnimationFrame(this.#engineLoop);
+        window.requestAnimationFrame(this.#engineLoop.bind(this));
     }
 
     get id(): string {
         return this.#id;
     }
 
-    get camera(): Readonly<Required<CameraState>> {
-        return this.#camera;
-    }
-
-    set camera(camera: CameraState) {
-        this.#camera = { ...DEFAULT_CAMERA_OPTIONS, ...camera };
-    }
-
     get canvas(): HTMLCanvasElement | null {
-        return this.#canvas;
+        return this._canvas;
     }
 
     set canvas(canvas: HTMLCanvasElement | null) {
-        this.#canvas = canvas;
+        this._canvas = canvas;
         if (canvas) {
             this.forceRender();
         }
+    }
+
+    get canvasSize(): Position | null {
+        if (!this._canvas) {
+            return null;
+        }
+
+        return { x: this._canvas.width, y: this._canvas.height };
+    }
+
+    get options(): Readonly<EngineOptions> {
+        return this._options;
+    }
+
+    set options(newOptions: EngineOptions) {
+        this.#applyOptions(newOptions);
+    }
+
+    get camera(): Readonly<Required<CameraState>> {
+        return this._camera;
+    }
+
+    set camera(newCamera: CameraState) {
+        this._camera = { ...DEFAULT_CAMERA_OPTIONS, ...newCamera };
+    }
+
+    get rootEntity(): Readonly<Entity> {
+        return this._rootEntity;
     }
 
     get mouseState(): Readonly<MouseState> {
@@ -162,16 +169,8 @@ export class Engine {
         return this.#renderTime;
     }
 
-    get options(): Readonly<EngineOptions> {
-        return this.#options;
-    }
-
-    set options(options: EngineOptions) {
-        this.#options = { ...this.#options, ...options };
-    }
-
     addEntities(...entities: Entity[]): void {
-        this.#rootEntity.addChildren(...entities);
+        this._rootEntity.addChildren(...entities);
     }
 
     forceRender(): void {
@@ -179,13 +178,13 @@ export class Engine {
     }
 
     mouseToWorld(position: Position, ignorePosition: boolean = false): Position {
-        if (!this.#canvas) {
+        if (!this._canvas) {
             return position;
         }
-        const x = position.x;
-        const y = position.y;
+        const x = position.x - this._canvas.width / 2;
+        const y = position.y - this._canvas.height / 2;
 
-        const rotation = -this.#camera.rotation * (Math.PI / 180);
+        const rotation = -this._camera.rotation * (Math.PI / 180);
         const cos = Math.cos(rotation);
         const sin = Math.sin(rotation);
         const rotatedX = x * cos - y * sin;
@@ -195,13 +194,13 @@ export class Engine {
         const worldY = rotatedY;
 
         return {
-            x: ignorePosition ? worldX : worldX - this.#camera.position.x * this.#camera.zoom,
-            y: ignorePosition ? worldY : worldY - this.#camera.position.y * this.#camera.zoom,
+            x: ignorePosition ? worldX : worldX - this._camera.position.x * this._camera.zoom,
+            y: ignorePosition ? worldY : worldY - this._camera.position.y * this._camera.zoom,
         };
     }
 
     setCameraPosition(position: Position): void {
-        this.#camera.position = position;
+        this._camera.position = position;
     }
 
     addBrowserEventHandler<T extends BrowserEvent>(
@@ -234,64 +233,76 @@ export class Engine {
         this.#handleBrowserEvent(...args);
     onMouseOver: BrowserEventHandler<'mouseover'> = (...args) => this.#handleBrowserEvent(...args);
 
-    #inputs = (): void => {
-        this.#mouseState.leftPressed = this.#mouseState.leftDown && !this.#lastMouseState.leftDown;
-        this.#mouseState.leftReleased = !this.#mouseState.leftDown && this.#lastMouseState.leftDown;
-        this.#mouseState.rightPressed =
-            this.#mouseState.rightDown && !this.#lastMouseState.rightDown;
-        this.#mouseState.rightReleased =
-            !this.#mouseState.rightDown && this.#lastMouseState.rightDown;
-        this.#mouseState.middlePressed =
-            this.#mouseState.middleDown && !this.#lastMouseState.middleDown;
-        this.#mouseState.middleReleased =
-            !this.#mouseState.middleDown && this.#lastMouseState.middleDown;
-        this.#lastMouseState = { ...this.#mouseState };
-    };
+    #inputs(): void {
+        this.#mouseState.justMoved =
+            this.#mouseState.x !== this.#lastMouseState.x ||
+            this.#mouseState.y !== this.#lastMouseState.y;
+        Object.values(MouseButton).forEach((button: MouseButton) => {
+            this.#mouseState[button].pressed =
+                this.#mouseState[button].down && !this.#lastMouseState[button].down;
+            this.#mouseState[button].released =
+                !this.#mouseState[button].down && this.#lastMouseState[button].down;
+        });
 
-    #update = (deltaTime: number): boolean => {
+        this.#lastMouseState = {
+            ...this.#mouseState,
+            [MouseButton.LEFT]: { ...this.#mouseState[MouseButton.LEFT] },
+            [MouseButton.MIDDLE]: { ...this.#mouseState[MouseButton.MIDDLE] },
+            [MouseButton.RIGHT]: { ...this.#mouseState[MouseButton.RIGHT] },
+        };
+    }
+
+    #update(deltaTime: number): boolean {
         const startTime = performance.now();
 
-        if (!this.#rootEntity.enabled) {
+        if (!this._rootEntity.enabled) {
             this.#updateTime = 0;
             return false;
         }
 
-        let updated = false;
-        updated = this.#rootEntity.update(deltaTime) || updated;
+        let updated = this._update(deltaTime);
+        updated = this._rootEntity.update(deltaTime) || updated;
 
-        this.#rootEntity.setScale({ x: this.#camera.zoom, y: this.#camera.zoom });
-        this.#rootEntity.setRotation(this.#camera.rotation);
-        this.#rootEntity.setPosition(this.#camera.position);
+        this._rootEntity.setScale({ x: this._camera.zoom, y: this._camera.zoom });
+        this._rootEntity.setRotation(this._camera.rotation);
+        this._rootEntity.setPosition(this._camera.position);
 
         this.#updateTime = performance.now() - startTime;
         return updated;
-    };
+    }
 
-    #render = () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _update(_deltaTime: number): boolean {
+        return false;
+    }
+
+    #render() {
         const startTime = performance.now();
 
-        if (!this.#canvas) {
+        if (!this._canvas || !this.canvasSize) {
             this.#renderTime = performance.now() - startTime;
             return;
         }
 
-        const ctx = this.#canvas.getContext('2d');
+        const ctx = this._canvas.getContext('2d');
         if (!ctx) {
             console.error('Failed to get canvas context');
             this.#renderTime = performance.now() - startTime;
             return;
         }
 
+        const { x: canvasWidth, y: canvasHeight } = this.canvasSize;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.fillStyle = this.#camera.clearColor;
-        ctx.fillRect(0, 0, this.#canvas.width, this.#canvas.height);
+        ctx.fillStyle = this._camera.clearColor;
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        ctx.translate(canvasWidth / 2, canvasHeight / 2);
 
-        renderFrame(ctx, this.#rootEntity);
+        this._renderSystem.render(ctx, this._rootEntity);
 
         this.#renderTime = performance.now() - startTime;
-    };
+    }
 
-    #engineLoop = () => {
+    #engineLoop() {
         const currentTime = performance.now();
         const deltaTime = (currentTime - this.#lastTime) * 0.001;
         this.#lastTime = currentTime;
@@ -311,14 +322,14 @@ export class Engine {
             this.#forceRender = false;
         }
 
-        window.requestAnimationFrame(this.#engineLoop);
-    };
+        window.requestAnimationFrame(this.#engineLoop.bind(this));
+    }
 
-    #handleBrowserEvent = (event: BrowserEvent, data: BrowserEventMap[BrowserEvent]) => {
+    #handleBrowserEvent(event: BrowserEvent, data: BrowserEventMap[BrowserEvent]) {
         this.#browserEventHandlers[event]?.forEach((handler) => {
             handler(event, data);
         });
-    };
+    }
 
     #setMousePosition(position: Position): void {
         this.#mouseState.x = position.x;
@@ -332,26 +343,23 @@ export class Engine {
     }
 
     #setMouseWheel(delta: number): void {
-        this.#camera.zoom += delta * this.#options.zoomSpeed;
-        this.#camera.zoom = Math.max(
-            this.#options.minZoom,
-            Math.min(this.#options.maxZoom, this.#camera.zoom),
+        this._camera.zoom += delta * this._options.zoomSpeed;
+        this._camera.zoom = Math.max(
+            this._options.minZoom,
+            Math.min(this._options.maxZoom, this._camera.zoom),
         );
     }
 
-    #setMouseButtonDown(button: number, down: boolean): void {
-        switch (button) {
-            case 0:
-                this.#mouseState.leftDown = down;
-                break;
-            case 1:
-                this.#mouseState.middleDown = down;
-                break;
-            case 2:
-                this.#mouseState.rightDown = down;
-                break;
-            default:
-                break;
-        }
+    #setMouseButtonDown(button: MouseButton, down: boolean): void {
+        this.#mouseState[button].down = down;
+    }
+
+    #applyOptions(newOptions: EngineOptions): void {
+        this._camera.zoom = Math.max(
+            this._options.minZoom,
+            Math.min(this._options.maxZoom, this._camera.zoom),
+        );
+
+        this._options = { ...this._options, ...newOptions };
     }
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import type { Engine } from '../../utils/engine';
-import type { Position } from '../../utils/levelSchema';
+import type { MouseButton } from '../../utils/engine/types';
 
 const calculateCanvasSize = (width: number, height: number, aspectRatio?: number): Position => {
     if (aspectRatio) {
@@ -49,13 +49,16 @@ export function EngineCanvas({ engineRef, aspectRatio, ...rest }: EngineCanvasPr
                 engineRef.current?.onMouseMove('mousemove', { x: event.clientX, y: event.clientY });
             localCanvas.addEventListener('mousemove', onMouseMove);
             const onMouseWheel = (event: WheelEvent) =>
-                engineRef.current?.onMouseWheel('mousewheel', { delta: event.deltaY });
+                {
+                    engineRef.current?.onMouseWheel('mousewheel', { delta: event.deltaY });
+                    event.preventDefault();
+                };
             localCanvas.addEventListener('wheel', onMouseWheel);
             const onMouseDown = (event: MouseEvent) =>
-                engineRef.current?.onMouseDown('mousedown', { button: event.button });
+                engineRef.current?.onMouseDown('mousedown', { button: event.button as MouseButton });
             localCanvas.addEventListener('mousedown', onMouseDown);
             const onMouseUp = (event: MouseEvent) =>
-                engineRef.current?.onMouseUp('mouseup', { button: event.button });
+                engineRef.current?.onMouseUp('mouseup', { button: event.button as MouseButton });
             localCanvas.addEventListener('mouseup', onMouseUp);
             const onMouseEnter = (event: MouseEvent) =>
                 engineRef.current?.onMouseEnter('mouseenter', {

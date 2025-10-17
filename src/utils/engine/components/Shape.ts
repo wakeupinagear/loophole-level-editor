@@ -1,11 +1,14 @@
-import { RENDER_CMD, RenderCommand, type RenderCommandStream, type RenderStyle } from '../renderer';
+import {
+    RENDER_CMD,
+    RenderCommand,
+    type RenderCommandStream,
+    type RenderStyle,
+} from '../systems/render';
 import { DrawableComponent } from './index';
 
 type Shape = 'RECT' | 'ELLIPSE';
 
-export class ShapeComponent extends DrawableComponent {
-    protected override readonly _typeString: string = 'ShapeComponent';
-
+export class C_Shape extends DrawableComponent {
     #shape: Shape;
 
     constructor(name: string, shape: Shape, style?: RenderStyle) {
@@ -19,19 +22,12 @@ export class ShapeComponent extends DrawableComponent {
             return;
         }
 
-        const transform = this.entity.transform;
-
-        // Push the transform, draw at origin with unit size, let the transform handle everything
-        if (transform && !transform.isIdentity) {
-            out.push(new RenderCommand(RENDER_CMD.PUSH_TRANSFORM, null, { t: transform }));
-        }
-
         switch (this.#shape) {
             case 'RECT':
                 out.push(
                     new RenderCommand(RENDER_CMD.DRAW_RECT, this.style, {
-                        x: 0,
-                        y: 0,
+                        x: -0.5,
+                        y: -0.5,
                         w: 1,
                         h: 1,
                         fill: Boolean(this._style.fillStyle),
@@ -51,10 +47,6 @@ export class ShapeComponent extends DrawableComponent {
                     }),
                 );
                 break;
-        }
-
-        if (transform && !transform.isIdentity) {
-            out.push(new RenderCommand(RENDER_CMD.POP_TRANSFORM, null));
         }
     }
 }

@@ -1,39 +1,39 @@
-import { v4 } from 'uuid';
 import type { Component } from '../components';
-import type { Position } from '../../levelSchema';
-import { RENDER_CMD, RenderCommand, type RenderCommandStream } from '../renderer';
-import type { Renderable, Transform } from '../types';
+import { RENDER_CMD, RenderCommand, type RenderCommandStream } from '../systems/render';
+import type { Position, RecursiveArray, Renderable } from '../types';
+import { C_Transform } from '../components/transforms';
 
 export class Entity implements Renderable {
-    protected readonly _id: string;
+    protected static _nextId: number = 1;
+    protected readonly _id: number;
     protected readonly _name: string;
 
     protected _enabled: boolean = true;
-    protected _transform: Transform = new DOMMatrix();
-
-    protected _position: Position = { x: 0, y: 0 };
-    protected _scale: Position = { x: 1, y: 1 };
-    protected _rotation: number = 0;
-    protected _isTransformDirty: boolean = false;
+    protected _updated: boolean = false;
 
     protected _zIndex: number = 0;
 
     protected _parent: Entity | null = null;
+    protected _transform: C_Transform;
+
     protected _children: Entity[] = [];
+    #childrenZIndexDirty: boolean = false;
 
     protected _components: Component[];
+    #componentsZIndexDirty: boolean = false;
 
-    constructor(name: string, components: Component[] = []) {
+    constructor(name: string, ...components: Component[]) {
         this._name = name;
-        this._components = components;
+        this._components = [...components];
+        this._components.push((this._transform = new C_Transform()));
         this._components.forEach((component) => {
             component.entity = this;
         });
 
-        this._id = v4();
+        this._id = Entity._nextId++;
     }
 
-    get id(): string {
+    get id(): number {
         return this._id;
     }
 
@@ -49,7 +49,7 @@ export class Entity implements Renderable {
         this._enabled = enabled;
     }
 
-    get transform(): Transform | null {
+    get transform(): Readonly<C_Transform> | null {
         return this._transform;
     }
 
@@ -57,11 +57,19 @@ export class Entity implements Renderable {
         return this._zIndex;
     }
 
-    get components(): Component[] {
+    set componentsZIndexDirty(dirty: boolean) {
+        this.#componentsZIndexDirty = dirty;
+    }
+
+    set childrenZIndexDirty(dirty: boolean) {
+        this.#childrenZIndexDirty = dirty;
+    }
+
+    get components(): ReadonlyArray<Component> {
         return this._components;
     }
 
-    get parent(): Entity | null {
+    get parent(): Readonly<Entity> | null {
         return this._parent;
     }
 
@@ -69,8 +77,15 @@ export class Entity implements Renderable {
         this._parent = parent;
     }
 
-    get children(): Entity[] {
+    get children(): ReadonlyArray<Entity> {
         return this._children;
+    }
+
+    getComponentsInTree<T extends Component>(typeString: string): RecursiveArray<T> {
+        return [
+            ...this._children.map((c) => c.getComponentsInTree<T>(typeString)),
+            ...this._components.filter((c) => c.typeString === typeString && c.enabled),
+        ] as RecursiveArray<T>;
     }
 
     update(deltaTime: number): boolean {
@@ -78,13 +93,8 @@ export class Entity implements Renderable {
             return false;
         }
 
-        let updated = false;
-
-        if (this._isTransformDirty) {
-            this._calculateTransform();
-            this._isTransformDirty = false;
-            updated = true;
-        }
+        let updated = this._updated;
+        this._updated = false;
 
         for (const component of this._components) {
             if (component.enabled) {
@@ -106,6 +116,7 @@ export class Entity implements Renderable {
             this._children.push(entity);
             entity.parent = this;
         }
+        this.#sortChildren();
 
         return this;
     }
@@ -116,58 +127,58 @@ export class Entity implements Renderable {
     }
 
     setPosition(newPosition: Position): Entity {
-        if (this._position.x !== newPosition.x || this._position.y !== newPosition.y) {
-            this._position = { ...newPosition };
-            this._isTransformDirty = true;
-        }
+        this._transform.setPosition(newPosition);
 
         return this;
     }
 
-    translate(delta: Position): Entity {
-        return this.setPosition({
-            x: this._position.x + delta.x,
-            y: this._position.y + delta.y,
-        });
-    }
-
-    scale(delta: Position): Entity {
-        return this.setScale({
-            x: this._scale.x + delta.x,
-            y: this._scale.y + delta.y,
-        });
-    }
-
-    rotate(delta: number): Entity {
-        return this.setRotation(this._rotation + delta);
-    }
-
     setScale(newScale: Position): Entity {
-        if (this._scale.x !== newScale.x || this._scale.y !== newScale.y) {
-            this._scale = { ...newScale };
-            this._isTransformDirty = true;
-        }
+        this._transform.setScale(newScale);
 
         return this;
     }
 
     setRotation(newRotation: number): Entity {
-        if (this._rotation !== newRotation) {
-            this._rotation = newRotation;
-            this._isTransformDirty = true;
-        }
+        this._transform.setRotation(newRotation);
+
+        return this;
+    }
+
+    translate(delta: Position): Entity {
+        this._transform.translate(delta);
+
+        return this;
+    }
+
+    scaleBy(delta: Position): Entity {
+        this._transform.scaleBy(delta);
+
+        return this;
+    }
+
+    rotate(delta: number): Entity {
+        this._transform.rotate(delta);
 
         return this;
     }
 
     setZIndex(zIndex: number): Entity {
         this._zIndex = zIndex;
+        if (this._parent) {
+            this._parent.childrenZIndexDirty = true;
+        }
 
         return this;
     }
 
-    addComponent(component: Component): void {
-        this._components.push(component);
+    addComponents(...components: Component[]): Entity {
+        for (const component of components) {
+            this._components.push(component);
+            component.entity = this;
+        }
+        this.#sortComponents();
+
+        return this;
     }
 
     removeComponent(component: Component): void {
@@ -183,49 +194,67 @@ export class Entity implements Renderable {
     }
 
     queueRenderCommands(out: RenderCommandStream): void {
-        if (!this._enabled) {
+        if (!this._enabled || this._children.length + this._components.length === 0) {
             return;
         }
 
+        if (this.#childrenZIndexDirty) {
+            this.#sortChildren();
+            this.#childrenZIndexDirty = false;
+        }
+        if (this.#componentsZIndexDirty) {
+            this.#sortComponents();
+            this.#componentsZIndexDirty = false;
+        }
+
+        if (this._transform && !this._transform.localMatrix.isIdentity) {
+            out.push(
+                new RenderCommand(RENDER_CMD.PUSH_TRANSFORM, null, {
+                    t: this._transform.localMatrix,
+                }),
+            );
+        }
+
+        // Negative z-index children first
+        for (const child of this._children) {
+            if (child.zIndex < 0) {
+                child.queueRenderCommands(out);
+            }
+        }
+
+        // Then components
         for (const component of this._components) {
             if (component.enabled) {
                 component.queueRenderCommands(out);
             }
         }
 
-        if (this._children.length > 0) {
-            if (this._transform && !this._transform.isIdentity) {
-                out.push(
-                    new RenderCommand(RENDER_CMD.PUSH_TRANSFORM, null, { t: this._transform }),
-                );
-            }
-
-            this._children.forEach((child) => {
+        // Then non-negative z-index children
+        for (const child of this._children) {
+            if (child.zIndex >= 0) {
                 child.queueRenderCommands(out);
-            });
-
-            if (this._transform && !this._transform.isIdentity) {
-                out.push(new RenderCommand(RENDER_CMD.POP_TRANSFORM, null));
             }
+        }
+
+        if (this._transform && !this._transform.localMatrix.isIdentity) {
+            out.push(new RenderCommand(RENDER_CMD.POP_TRANSFORM, null));
         }
     }
 
-    _calculateTransform(): void {
-        // Build transformation matrix: T * R * S
-        // We need to apply operations in reverse order for post-multiplication,
-        // OR use proper matrix multiplication
+    #sortByZIndex<T extends { zIndex: number; id: number }>(a: T, b: T): number {
+        const zDiff = b.zIndex - a.zIndex;
+        if (zDiff !== 0) {
+            return zDiff;
+        }
 
-        const matrix = new DOMMatrix();
+        return a.id > b.id ? 1 : -1;
+    }
 
-        // First, translate to position (this happens LAST in the transform chain)
-        matrix.translateSelf(this._position.x, this._position.y);
+    #sortChildren(): void {
+        this._children.sort(this.#sortByZIndex);
+    }
 
-        // Then rotate (this happens in the middle)
-        matrix.rotateSelf(this._rotation);
-
-        // Finally scale (this happens FIRST to the actual geometry)
-        matrix.scaleSelf(this._scale.x, this._scale.y);
-
-        this._transform = matrix;
+    #sortComponents(): void {
+        this._components.sort(this.#sortByZIndex);
     }
 }

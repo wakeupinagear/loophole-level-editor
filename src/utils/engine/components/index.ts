@@ -1,22 +1,24 @@
-import { v4 } from 'uuid';
 import type { Entity } from '../entities';
-import type { RenderCommandStream, RenderStyle } from '../renderer';
 import type { Renderable } from '../types';
+import type { RenderCommandStream, RenderStyle } from '../systems/render';
 
 export abstract class Component implements Renderable {
-    protected readonly _id: string;
+    protected static _nextId: number = 1;
+    protected readonly _id: number;
     protected readonly _name: string;
-    protected readonly _typeString: string = 'Component';
+
     protected _enabled: boolean = true;
+
+    protected _zIndex: number = 0;
 
     protected _entity: Entity | null = null;
 
     constructor(name: string) {
         this._name = name;
-        this._id = v4();
+        this._id = Component._nextId++;
     }
 
-    get id(): string {
+    get id(): number {
         return this._id;
     }
 
@@ -28,12 +30,16 @@ export abstract class Component implements Renderable {
         return this._enabled;
     }
 
+    get zIndex(): number {
+        return this._zIndex;
+    }
+
     set enabled(enabled: boolean) {
         this._enabled = enabled;
     }
 
     get typeString(): string {
-        return this._typeString;
+        return this.constructor.name;
     }
 
     get entity(): Entity | null {
@@ -49,12 +55,21 @@ export abstract class Component implements Renderable {
         return false;
     }
 
-    abstract queueRenderCommands(out: RenderCommandStream): void;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    queueRenderCommands(_out: RenderCommandStream) {}
+
+    setZIndex(zIndex: number): Component {
+        this._zIndex = zIndex;
+        if (this._entity) {
+            this._entity.componentsZIndexDirty = true;
+        }
+
+        return this;
+    }
 }
 
 export abstract class DrawableComponent extends Component {
     protected _style: RenderStyle;
-    protected override readonly _typeString: string = 'DrawableComponent';
 
     constructor(name: string, style?: RenderStyle) {
         super(name);
