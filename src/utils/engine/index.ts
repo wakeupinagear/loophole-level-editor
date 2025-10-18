@@ -1,7 +1,8 @@
-import { v4 } from 'uuid';
 import { Entity } from './entities';
 import { RenderSystem } from './systems/render';
 import { MouseButton, type MouseState, type Position } from './types';
+import type { AvailableScenes, Scene, SceneIdentifier } from './systems/scene';
+import { SceneSystem } from './systems/scene';
 
 type BrowserEvent =
     | 'mousemove'
@@ -40,30 +41,38 @@ const DEFAULT_CAMERA_OPTIONS: Required<CameraState> = {
     clearColor: 'black',
 };
 
-interface EngineOptions {
+export interface EngineOptions {
     zoomSpeed?: number;
     minZoom?: number;
     maxZoom?: number;
+    scenes?: AvailableScenes;
+
     cameraStart?: CameraState;
+    startScenes?: string[];
 }
 
 const DEFAULT_ENGINE_OPTIONS: Required<EngineOptions> = {
     zoomSpeed: 0.001,
     minZoom: 0.1,
     maxZoom: 10,
+    scenes: {},
+
     cameraStart: { ...DEFAULT_CAMERA_OPTIONS },
+    startScenes: [],
 };
 
 export class Engine {
-    readonly #id: string = v4();
+    protected static _nextId: number = 1;
+    protected readonly _id: number = Engine._nextId++;
 
     _canvas: HTMLCanvasElement | null = null;
-    _options: Required<EngineOptions> = { ...DEFAULT_ENGINE_OPTIONS };
+    _options: Required<EngineOptions> = { ...DEFAULT_ENGINE_OPTIONS, scenes: {} };
 
     _camera: Required<CameraState>;
     _rootEntity: Entity;
 
-    _renderSystem: RenderSystem = new RenderSystem();
+    _renderSystem: RenderSystem;
+    _sceneSystem: SceneSystem;
 
     #forceRender: boolean = true;
     #mouseState: MouseState = {
@@ -88,13 +97,11 @@ export class Engine {
 
     #browserEventHandlers: Partial<Record<BrowserEvent, BrowserEventHandler<BrowserEvent>[]>> = {};
 
-    constructor() {
+    constructor(options: EngineOptions = {}) {
         window.engine = this;
-
-        this._camera = { ...DEFAULT_CAMERA_OPTIONS, ...this._options.cameraStart };
-        this.#applyOptions(this._options);
-
         this._rootEntity = new Entity('root');
+        this._renderSystem = new RenderSystem();
+        this._sceneSystem = new SceneSystem(this._rootEntity);
 
         this.addBrowserEventHandler('mousedown', (_, data) =>
             this.#setMouseButtonDown(data.button, true),
@@ -107,11 +114,19 @@ export class Engine {
         this.addBrowserEventHandler('mouseleave', (_, data) => this.#setMouseOnScreen(false, data));
         this.addBrowserEventHandler('mousewheel', (_, { delta }) => this.#setMouseWheel(delta));
 
+        this._options = { ...DEFAULT_ENGINE_OPTIONS, ...options };
+        this._camera = { ...DEFAULT_CAMERA_OPTIONS, ...this._options.cameraStart };
+
+        this.#applyOptions(this._options);
+        this._options.startScenes.forEach((scene) => {
+            this.createScene(scene);
+        });
+
         window.requestAnimationFrame(this.#engineLoop.bind(this));
     }
 
-    get id(): string {
-        return this.#id;
+    get id(): number {
+        return this._id;
     }
 
     get canvas(): HTMLCanvasElement | null {
@@ -169,8 +184,26 @@ export class Engine {
         return this.#renderTime;
     }
 
+    createScene(sceneID: string, name?: string): Scene | null {
+        if (!this._options.scenes[sceneID]) {
+            return null;
+        }
+
+        const scene = this._options.scenes[sceneID](name);
+        this._sceneSystem.createScene(scene);
+        return scene;
+    }
+
+    destroyScene(scene: SceneIdentifier): void {
+        this._sceneSystem.destroyScene(scene);
+    }
+
     addEntities(...entities: Entity[]): void {
-        this._rootEntity.addChildren(...entities);
+        this.addSceneEntities('', ...entities);
+    }
+
+    addSceneEntities(sceneName: string, ...entities: Entity[]): void {
+        this._sceneSystem.addEntities(sceneName, ...entities);
     }
 
     forceRender(): void {
@@ -201,6 +234,14 @@ export class Engine {
 
     setCameraPosition(position: Position): void {
         this._camera.position = position;
+    }
+
+    setCameraZoom(zoom: number): void {
+        this._camera.zoom = zoom;
+    }
+
+    setCameraRotation(rotation: number): void {
+        this._camera.rotation = rotation;
     }
 
     addBrowserEventHandler<T extends BrowserEvent>(
@@ -316,8 +357,9 @@ export class Engine {
         }
 
         this.#inputs();
-
-        if (this.#update(deltaTime) || this.#forceRender) {
+        const sceneUpdated = this._sceneSystem.update(deltaTime);
+        const entityUpdated = this.#update(deltaTime);
+        if (sceneUpdated || entityUpdated || this.#forceRender) {
             this.#render();
             this.#forceRender = false;
         }
@@ -332,6 +374,9 @@ export class Engine {
     }
 
     #setMousePosition(position: Position): void {
+        if (this.#mouseState.onScreen) {
+            this.#mouseState.justMoved = true;
+        }
         this.#mouseState.x = position.x;
         this.#mouseState.y = position.y;
     }

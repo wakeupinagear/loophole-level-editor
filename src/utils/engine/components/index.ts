@@ -4,7 +4,7 @@ import type { RenderCommandStream, RenderStyle } from '../systems/render';
 
 export abstract class Component implements Renderable {
     protected static _nextId: number = 1;
-    protected readonly _id: number;
+    protected readonly _id: number = Component._nextId++;
     protected readonly _name: string;
 
     protected _enabled: boolean = true;
@@ -15,7 +15,6 @@ export abstract class Component implements Renderable {
 
     constructor(name: string) {
         this._name = name;
-        this._id = Component._nextId++;
     }
 
     get id(): number {
@@ -53,6 +52,10 @@ export abstract class Component implements Renderable {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     update(_: number): boolean {
         return false;
+    }
+
+    destroy(): void {
+        this._entity = null;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -5,7 +5,7 @@ import { C_Transform } from '../components/transforms';
 
 export class Entity implements Renderable {
     protected static _nextId: number = 1;
-    protected readonly _id: number;
+    protected readonly _id: number = Entity._nextId++;
     protected readonly _name: string;
 
     protected _enabled: boolean = true;
@@ -29,8 +29,6 @@ export class Entity implements Renderable {
         this._components.forEach((component) => {
             component.entity = this;
         });
-
-        this._id = Entity._nextId++;
     }
 
     get id(): number {
@@ -111,12 +109,19 @@ export class Entity implements Renderable {
         return updated;
     }
 
+    destroy(): void {
+        const parent = this._parent;
+        this.parent?.removeChild(this);
+        this.#destroy();
+        parent?.removeChild(this);
+    }
+
     addChildren(...entities: Entity[]): Entity {
         for (const entity of entities) {
             this._children.push(entity);
             entity.parent = this;
         }
-        this.#sortChildren();
+        this.childrenZIndexDirty = true;
 
         return this;
     }
@@ -176,7 +181,7 @@ export class Entity implements Renderable {
             this._components.push(component);
             component.entity = this;
         }
-        this.#sortComponents();
+        this.componentsZIndexDirty = true;
 
         return this;
     }
@@ -241,8 +246,21 @@ export class Entity implements Renderable {
         }
     }
 
+    #destroy(): void {
+        this._children.forEach((child) => {
+            child.#destroy();
+        });
+        this._components.forEach((component) => {
+            component.destroy();
+        });
+
+        this._children = [];
+        this._components = [];
+        this._parent = null;
+    }
+
     #sortByZIndex<T extends { zIndex: number; id: number }>(a: T, b: T): number {
-        const zDiff = b.zIndex - a.zIndex;
+        const zDiff = a.zIndex - b.zIndex;
         if (zDiff !== 0) {
             return zDiff;
         }
@@ -252,6 +270,9 @@ export class Entity implements Renderable {
 
     #sortChildren(): void {
         this._children.sort(this.#sortByZIndex);
+        this._children.forEach((child) => {
+            child.#sortChildren();
+        });
     }
 
     #sortComponents(): void {
