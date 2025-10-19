@@ -19,7 +19,7 @@ export interface RenderStyle {
 export const DEFAULT_RENDER_STYLE: Required<RenderStyle> = {
     fillStyle: 'white',
     strokeStyle: 'black',
-    lineWidth: 1,
+    lineWidth: 0,
     lineJoin: 'miter',
     lineCap: 'butt',
     lineDash: [],

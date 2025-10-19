@@ -66,23 +66,12 @@ export class SceneSystem {
         this.#worldRootEntity = worldRootEntity;
     }
 
+    get queuedActionsExist(): boolean {
+        return this.#queuedNewScenes.length > 0 || this.#queuedDestroyedScenes.length > 0;
+    }
+
     update(deltaTime: number): boolean {
-        this.#queuedNewScenes.forEach((scene) => {
-            this.#makeSceneActive(scene);
-        });
-        this.#queuedNewScenes = [];
-
-        let updated = false;
-
-        this.#queuedDestroyedScenes.forEach((scene) => {
-            scene.destroy();
-            const rootEntity = this.#sceneRootEntities.get(scene.id);
-            if (rootEntity) {
-                rootEntity.destroy();
-            }
-            updated = true;
-        });
-        this.#queuedDestroyedScenes = [];
+        let updated = this.#performQueuedUpdate();
 
         this.#activeScenesByID.forEach((scene) => {
             updated = scene.update(deltaTime) || updated;
@@ -107,6 +96,10 @@ export class SceneSystem {
     }
 
     addEntities(scene: SceneIdentifier, ...entities: Entity[]): void {
+        if (this.queuedActionsExist) {
+            this.#performQueuedUpdate();
+        }
+
         let sceneObject = this.#findScene(scene);
         if (!sceneObject) {
             this.#defaultScene = new Scene(DEFAULT_SCENE_NAME);
@@ -123,6 +116,10 @@ export class SceneSystem {
     }
 
     #findScene(scene: SceneIdentifier): Scene | null {
+        if (this.queuedActionsExist) {
+            this.#performQueuedUpdate();
+        }
+
         return (
             (!scene
                 ? this.#defaultScene
@@ -147,5 +144,26 @@ export class SceneSystem {
 
         scene.rootEntity = rootEntity;
         scene.create();
+    }
+
+    #performQueuedUpdate(): boolean {
+        this.#queuedNewScenes.forEach((scene) => {
+            this.#makeSceneActive(scene);
+        });
+        this.#queuedNewScenes = [];
+
+        let updated = false;
+
+        this.#queuedDestroyedScenes.forEach((scene) => {
+            scene.destroy();
+            const rootEntity = this.#sceneRootEntities.get(scene.id);
+            if (rootEntity) {
+                rootEntity.destroy();
+            }
+            updated = true;
+        });
+        this.#queuedDestroyedScenes = [];
+
+        return updated;
     }
 }

@@ -47,7 +47,7 @@ export class Entity implements Renderable {
         this._enabled = enabled;
     }
 
-    get transform(): Readonly<C_Transform> {
+    get transform(): C_Transform {
         return this._transform;
     }
 
@@ -116,7 +116,7 @@ export class Entity implements Renderable {
         parent?.removeChild(this);
     }
 
-    addChildren(...entities: Entity[]): Entity {
+    addChildren(...entities: Entity[]): this {
         for (const entity of entities) {
             this._children.push(entity);
             entity.parent = this;
@@ -131,43 +131,43 @@ export class Entity implements Renderable {
         entity.parent = null;
     }
 
-    setPosition(newPosition: Position): Entity {
+    setPosition(newPosition: Position): this {
         this._transform.setPosition(newPosition);
 
         return this;
     }
 
-    setScale(newScale: Position): Entity {
+    setScale(newScale: Position): this {
         this._transform.setScale(newScale);
 
         return this;
     }
 
-    setRotation(newRotation: number): Entity {
+    setRotation(newRotation: number): this {
         this._transform.setRotation(newRotation);
 
         return this;
     }
 
-    translate(delta: Position): Entity {
+    translate(delta: Position): this {
         this._transform.translate(delta);
 
         return this;
     }
 
-    scaleBy(delta: Position): Entity {
+    scaleBy(delta: Position): this {
         this._transform.scaleBy(delta);
 
         return this;
     }
 
-    rotate(delta: number): Entity {
+    rotate(delta: number): this {
         this._transform.rotate(delta);
 
         return this;
     }
 
-    setZIndex(zIndex: number): Entity {
+    setZIndex(zIndex: number): this {
         this._zIndex = zIndex;
         if (this._parent) {
             this._parent.childrenZIndexDirty = true;
@@ -176,7 +176,7 @@ export class Entity implements Renderable {
         return this;
     }
 
-    addComponents(...components: Component[]): Entity {
+    addComponents(...components: Component[]): this {
         for (const component of components) {
             this._components.push(component);
             component.entity = this;
@@ -212,23 +212,25 @@ export class Entity implements Renderable {
             this.#componentsZIndexDirty = false;
         }
 
-        if (this._transform && !this._transform.localMatrix.isIdentity) {
-            out.push(
-                new RenderCommand(RENDER_CMD.PUSH_TRANSFORM, null, {
-                    t: this._transform.localMatrix,
-                }),
-            );
-        }
-
         // Negative z-index children first
-        for (const child of this._children) {
-            if (child.zIndex < 0) {
-                child.queueRenderCommands(out);
+        if (this._children.some((child) => child.zIndex < 0)) {
+            if (this._transform && !this._transform.localMatrix.isIdentity) {
+                out.push(
+                    new RenderCommand(RENDER_CMD.PUSH_TRANSFORM, null, {
+                        t: this._transform.localMatrix,
+                    }),
+                );
             }
-        }
 
-        if (this._transform && !this._transform.localMatrix.isIdentity) {
-            out.push(new RenderCommand(RENDER_CMD.POP_TRANSFORM, null));
+            for (const child of this._children) {
+                if (child.zIndex < 0) {
+                    child.queueRenderCommands(out);
+                }
+            }
+
+            if (this._transform && !this._transform.localMatrix.isIdentity) {
+                out.push(new RenderCommand(RENDER_CMD.POP_TRANSFORM, null));
+            }
         }
 
         // Then components
@@ -238,23 +240,25 @@ export class Entity implements Renderable {
             }
         }
 
-        if (this._transform && !this._transform.localMatrix.isIdentity) {
-            out.push(
-                new RenderCommand(RENDER_CMD.PUSH_TRANSFORM, null, {
-                    t: this._transform.localMatrix,
-                }),
-            );
-        }
-
         // Then non-negative z-index children
-        for (const child of this._children) {
-            if (child.zIndex >= 0) {
-                child.queueRenderCommands(out);
+        if (this._children.some((child) => child.zIndex >= 0)) {
+            if (this._transform && !this._transform.worldMatrix.isIdentity) {
+                out.push(
+                    new RenderCommand(RENDER_CMD.PUSH_TRANSFORM, null, {
+                        t: this._transform.localMatrix,
+                    }),
+                );
             }
-        }
 
-        if (this._transform && !this._transform.localMatrix.isIdentity) {
-            out.push(new RenderCommand(RENDER_CMD.POP_TRANSFORM, null));
+            for (const child of this._children) {
+                if (child.zIndex >= 0) {
+                    child.queueRenderCommands(out);
+                }
+            }
+
+            if (this._transform && !this._transform.localMatrix.isIdentity) {
+                out.push(new RenderCommand(RENDER_CMD.POP_TRANSFORM, null));
+            }
         }
     }
 

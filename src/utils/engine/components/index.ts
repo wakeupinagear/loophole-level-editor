@@ -61,7 +61,7 @@ export abstract class Component implements Renderable {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     queueRenderCommands(_out: RenderCommandStream) {}
 
-    setZIndex(zIndex: number): Component {
+    setZIndex(zIndex: number): this {
         this._zIndex = zIndex;
         if (this._entity) {
             this._entity.componentsZIndexDirty = true;

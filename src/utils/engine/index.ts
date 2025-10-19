@@ -189,7 +189,7 @@ export class Engine {
             return null;
         }
 
-        const scene = this._options.scenes[sceneID](name);
+        const scene = this._options.scenes[sceneID](name ?? sceneID);
         this._sceneSystem.createScene(scene);
         return scene;
     }

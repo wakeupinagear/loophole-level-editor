@@ -1,7 +1,9 @@
 import { C_Shape } from '../../engine/components/Shape';
 import { Entity } from '../../engine/entities';
 import { Scene } from '../../engine/systems/scene';
-import { TILE_SIZE } from '../constants';
+import { TILE_SIZE } from '../utils';
+import type { Loophole_Entity, Loophole_Int2 } from '../externalLevelSchema';
+import type { OnTileChangedCallback } from '..';
 
 const GRID_BUFFER = 2;
 
@@ -60,6 +62,75 @@ class E_Grid extends Entity {
         this.#shapeComponent.repeat = { x: tilesX, y: tilesY };
 
         return true;
+    }
+}
+
+export abstract class E_Tile extends Entity {
+    _position: Loophole_Int2;
+    _entities: Loophole_Entity[] = [];
+
+    #onChanged: OnTileChangedCallback;
+
+    constructor(
+        name: string,
+        position: Loophole_Int2,
+        entities: Loophole_Entity[],
+        onChanged: OnTileChangedCallback,
+    ) {
+        super(name, new C_Shape('shape', 'RECT', { fillStyle: 'red' }));
+
+        this.setPosition(position);
+        this._position = position;
+        this.#onChanged = onChanged;
+
+        this.addEntities(entities, false);
+    }
+
+    get position(): Readonly<Loophole_Int2> {
+        return this._position;
+    }
+
+    set position(position: Loophole_Int2) {
+        this._position = position;
+    }
+
+    get entities(): ReadonlyArray<Loophole_Entity> {
+        return this._entities;
+    }
+
+    addEntities(entities: Loophole_Entity[], notify: boolean = true) {
+        this._entities.push(...entities);
+        if (notify) {
+            this.#onChanged(this);
+        }
+    }
+
+    removeEntity(entity: Loophole_Entity) {
+        this._entities = this._entities.filter((e) => e !== entity);
+    }
+
+    clearEntities() {
+        this._entities = [];
+    }
+}
+
+export class E_Cell extends E_Tile {
+    constructor(
+        position: Loophole_Int2,
+        entities: Loophole_Entity[],
+        onChanged: OnTileChangedCallback,
+    ) {
+        super('cell', position, entities, onChanged);
+    }
+}
+
+export class E_Edge extends E_Tile {
+    constructor(
+        position: Loophole_Int2,
+        entities: Loophole_Entity[],
+        onChanged: OnTileChangedCallback,
+    ) {
+        super('edge', position, entities, onChanged);
     }
 }
 

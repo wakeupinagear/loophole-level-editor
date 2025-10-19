@@ -9,9 +9,7 @@ export class C_Transform extends Component {
     #localMatrixDirty: boolean = true;
 
     #worldMatrix: DOMMatrix = new DOMMatrix();
-    #inverseWorldMatrix: DOMMatrix | null = null;
-    #computedWorldVersion: number = 0;
-    #inverseWorldDirty: boolean = true;
+    #worldMatrixDirty: boolean = true;
 
     constructor() {
         super('Transform');
@@ -21,51 +19,67 @@ export class C_Transform extends Component {
         return this.#position;
     }
 
+    get worldPosition(): Readonly<Position> {
+        return {
+            x: this.worldMatrix.e,
+            y: this.#worldMatrix.f,
+        };
+    }
+
     get rotation(): number {
         return this.#rotation;
+    }
+
+    get worldRotation(): number {
+        return this.worldMatrix.e;
     }
 
     get scale(): Readonly<Position> {
         return this.#scale;
     }
 
+    get worldScale(): Readonly<Position> {
+        return {
+            x: this.worldMatrix.a,
+            y: this.worldMatrix.d,
+        };
+    }
+
     get localMatrix(): Readonly<DOMMatrix> {
         if (this.#localMatrixDirty) {
             this.#computeLocalMatrix();
-            this.#localMatrixDirty = false;
         }
+
         return this.#localMatrix;
     }
 
     get worldMatrix(): Readonly<DOMMatrix> {
+        if (this.#worldMatrixDirty) {
+            this.#computeWorldMatrix();
+        }
+
         return this.#worldMatrix;
     }
 
-    get inverseWorldMatrix(): Readonly<DOMMatrix> {
-        if (this.#inverseWorldDirty || !this.#inverseWorldMatrix) {
-            this.#inverseWorldMatrix = this.#worldMatrix.inverse();
-            this.#inverseWorldDirty = false;
-        }
-        return this.#inverseWorldMatrix;
-    }
-
-    get computedWorldVersion(): number {
-        return this.#computedWorldVersion;
-    }
-
     setPosition(position: Position): void {
-        this.#position = { ...position };
-        this.#localMatrixDirty = true;
+        if (position.x !== this.#position.x || position.y !== this.#position.y) {
+            this.#position = { ...position };
+            this.#markLocalDirty();
+        }
     }
 
     setRotation(rotation: number): void {
-        this.#rotation = rotation;
-        this.#localMatrixDirty = true;
+        if (rotation !== this.#rotation) {
+            this.#rotation = rotation;
+            this.#markLocalDirty();
+        }
     }
 
     setScale(scale: Position): void {
-        this.#scale = { ...scale };
-        this.#localMatrixDirty = true;
+        if (scale.x !== this.#scale.x || scale.y !== this.#scale.y) {
+            this.#scale = { ...scale };
+            this.#markLocalDirty();
+        }
     }
 
     translate(delta: Position): void {
@@ -86,14 +100,36 @@ export class C_Transform extends Component {
         });
     }
 
-    isStale(parentComputedWorldVersion: number, localVersion: number): boolean {
-        return this.#computedWorldVersion !== parentComputedWorldVersion + localVersion;
-    }
-
     #computeLocalMatrix() {
         this.#localMatrix = new DOMMatrix();
         this.#localMatrix.translateSelf(this.#position.x, this.#position.y);
         this.#localMatrix.rotateSelf(this.#rotation);
         this.#localMatrix.scaleSelf(this.#scale.x, this.#scale.y);
+        this.#localMatrixDirty = false;
+        this.#worldMatrixDirty = true;
+    }
+
+    #computeWorldMatrix() {
+        if (this.entity?.parent) {
+            this.#worldMatrix = this.entity.parent.transform.worldMatrix.multiply(this.localMatrix);
+        } else {
+            this.#worldMatrix = this.localMatrix;
+        }
+
+        this.#worldMatrixDirty = false;
+    }
+
+    #markLocalDirty() {
+        this.#localMatrixDirty = true;
+        this.entity?.children.forEach((child) => {
+            child.transform.#markWorldDirty();
+        });
+    }
+
+    #markWorldDirty() {
+        this.#worldMatrixDirty = true;
+        this.entity?.children.forEach((child) => {
+            child.transform.#markWorldDirty();
+        });
     }
 }
