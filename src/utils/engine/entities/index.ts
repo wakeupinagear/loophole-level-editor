@@ -233,7 +233,7 @@ export class Entity implements Renderable {
 
         // Negative z-index children first
         for (const child of this._children) {
-            if (child.zIndex < 0) {
+            if (child.zIndex < 0 && child.enabled) {
                 child.queueRenderCommands(out);
             }
         }
@@ -247,7 +247,7 @@ export class Entity implements Renderable {
 
         // Then non-negative z-index children
         for (const child of this._children) {
-            if (child.zIndex >= 0) {
+            if (child.zIndex >= 0 && child.enabled) {
                 child.queueRenderCommands(out);
             }
         }

@@ -7,11 +7,11 @@ import type { E_Tile } from './editor/scenes/grid';
 
 interface AppStore {
     levels: Record<string, LevelWithMetadata>;
-    activeLevelID: string | null;
+    activeLevelID: string;
     addLevel: (level: LevelWithMetadata) => void;
     setActiveLevelID: (levelID: string) => void;
     removeLevel: (levelID: string) => void;
-    updateLevel: (level: LevelWithMetadata) => void;
+    updateLevel: (level: Partial<LevelWithMetadata>) => void;
     selectedEntityType: Loophole_ExtendedEntityType | null;
     setSelectedEntityType: (entityType: Loophole_ExtendedEntityType) => void;
     highlightedEngineTile: E_Tile | null;
@@ -42,7 +42,7 @@ export const useAppStore = create<AppStore>()(
                         levels: Object.fromEntries(
                             Object.entries(state.levels).map(([id, l]) => [
                                 id,
-                                l.id === level.id ? level : l,
+                                l.id === level.id ? { ...l, ...level } : l,
                             ]),
                         ),
                     })),

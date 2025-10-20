@@ -69,6 +69,11 @@ export abstract class Component implements Renderable {
 
         return this;
     }
+
+    setEnabled(enabled: boolean): this {
+        this._enabled = enabled;
+        return this;
+    }
 }
 
 export abstract class C_Drawable extends Component {

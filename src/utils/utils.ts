@@ -27,6 +27,28 @@ export const MAX_ENTITY_COUNT = 4000;
 
 export type LoopholeEntityPositionType = 'CELL' | 'EDGE';
 
+const ENTITY_TYPE_DRAW_ORDER_LIST: Loophole_EntityType[] = [
+    'WIRE',
+    'BUTTON',
+    'MUSHROOM',
+    'STAFF',
+    'WALL',
+    'ONE_WAY',
+    'GLASS',
+    'CURTAIN',
+    'DOOR',
+    'TIME_MACHINE',
+    'SAUCE',
+] as const;
+export const ENTITY_TYPE_DRAW_ORDER: Record<Loophole_EntityType, number> =
+    ENTITY_TYPE_DRAW_ORDER_LIST.reduce(
+        (acc, type, index) => {
+            acc[type] = index;
+            return acc;
+        },
+        {} as Record<Loophole_EntityType, number>,
+    );
+
 export const getLoopholeEntityPositionType = (
     entity: Loophole_Entity,
 ): LoopholeEntityPositionType => {
@@ -274,3 +296,11 @@ export const createLevelWithMetadata = (name: string): LevelWithMetadata => ({
         version: 0,
     },
 });
+
+export const getLoopholeEntityPositon = (entity: Loophole_Entity): Loophole_Int2 => {
+    if ('edgePosition' in entity) {
+        return entity.edgePosition.cell;
+    }
+
+    return entity.position;
+};

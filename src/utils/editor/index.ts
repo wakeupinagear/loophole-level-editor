@@ -1,7 +1,7 @@
 import { Engine, type EngineOptions } from '../engine';
 import type { AvailableScenes } from '../engine/systems/scene';
 import type { Loophole_Entity, Loophole_Int2, Loophole_Level } from './externalLevelSchema';
-import { E_Cell, E_Edge, E_Tile, GridScene } from './scenes/grid';
+import { E_Cell, E_Edge, GridScene } from './scenes/grid';
 import { TestScene } from './scenes/test';
 import { UIScene } from './scenes/ui';
 import {
@@ -12,6 +12,7 @@ import {
     type LoopholeEntityPositionType,
 } from '../utils';
 import { getAppStore } from '../store';
+import type { Position } from '../engine/types';
 
 const SCENES: AvailableScenes = {
     [TestScene.name]: (name) => new TestScene(name),
@@ -32,15 +33,20 @@ interface EdgeData extends TileData {
     entity: E_Edge;
 }
 
-export type OnTileChangedCallback = (tile: E_Tile) => void;
+export type OnLevelChangedCallback = (level: Loophole_Level) => void;
 
 export class Editor extends Engine {
-    #level: Loophole_Level | null = null;
+    #level: Loophole_Level;
+    #onLevelChanged: OnLevelChangedCallback;
 
     #cells: Record<string, CellData> = {};
     #edges: Record<string, EdgeData> = {};
 
-    constructor(options: EngineOptions = {}) {
+    constructor(
+        level: Loophole_Level,
+        onLevelChanged: OnLevelChangedCallback,
+        options: EngineOptions = {},
+    ) {
         super({
             scenes: SCENES,
             startScenes: [UIScene.name, GridScene.name],
@@ -60,86 +66,47 @@ export class Editor extends Engine {
             },
         });
 
-        const entities: Loophole_Entity[] = [];
-        for (let x = -10; x < 10; x++) {
-            for (let y = -10; y < 10; y++) {
-                entities.push({
-                    entityType: 'WALL',
-                    edgePosition: { cell: { x, y }, alignment: 'RIGHT' },
-                });
-                entities.push({
-                    entityType: 'BUTTON',
-                    position: { x, y },
-                    channel: 0,
-                });
-            }
-        }
-
-        this.level = {
-            colorPalette: 0,
-            entities: entities,
-            version: 0,
-            entrance: {
-                entityType: 'TIME_MACHINE',
-                position: { x: 0, y: 0 },
-                rotation: 'RIGHT',
-            },
-            exitPosition: { x: 10, y: 10 },
-        };
+        this.level = level;
+        this.#level = level;
+        this.#onLevelChanged = onLevelChanged;
     }
 
-    get level(): Loophole_Level | null {
+    get level(): Readonly<Loophole_Level> {
         return this.#level;
     }
 
-    set level(level: Loophole_Level | null) {
+    set level(level: Loophole_Level) {
         this.#level = level;
 
-        if (level) {
-            // clear existing cells and edges
-            Object.values(this.#cells).forEach((cell) => {
-                cell.entity.clearEntities();
-            });
-            Object.values(this.#edges).forEach((edge) => {
-                edge.entity.clearEntities();
-            });
+        // clear existing cells and edges
+        Object.values(this.#cells).forEach((cell) => {
+            cell.entity.clearEntities();
+        });
+        Object.values(this.#edges).forEach((edge) => {
+            edge.entity.clearEntities();
+        });
 
-            // group entities by position
-            const entitiesByPosition = new Map<string, Loophole_Entity[]>();
-            level.entities.forEach((entity) => {
-                const position = getLoopholeEntityPosition(entity);
-                const positionKey = this.#positionKey(position);
+        // group entities by position
+        const entitiesByPosition = new Map<string, Loophole_Entity[]>();
+        level.entities.forEach((entity) => {
+            const position = getLoopholeEntityPosition(entity);
+            const positionKey = this.#positionKey(position);
 
-                if (!entitiesByPosition.has(positionKey)) {
-                    entitiesByPosition.set(positionKey, []);
-                }
-                entitiesByPosition.get(positionKey)?.push(entity);
-            });
+            if (!entitiesByPosition.has(positionKey)) {
+                entitiesByPosition.set(positionKey, []);
+            }
+            entitiesByPosition.get(positionKey)?.push(entity);
+        });
 
-            // add entities to cells and edges, creating new objects as needed
-            entitiesByPosition.forEach((entities, positionKey) => {
-                const cellEntities: Loophole_Entity[] = [];
-                const edgeEntities: Loophole_Entity[] = [];
-                entities.forEach((entity) => {
-                    const type = getLoopholeEntityPositionType(entity);
-                    if (type === 'CELL') {
-                        cellEntities.push(entity);
-                    } else {
-                        edgeEntities.push(entity);
-                    }
-                });
+        // add entities to cells and edges, creating new objects as needed
+        entitiesByPosition.forEach((entities, positionKey) => {
+            const position = this.#positionFromKey(positionKey);
+            this.#addTileEntitiesToGrid(position, ...entities);
+        });
 
-                const position = this.#positionFromKey(positionKey);
-                const cell = this.#getTile(position, 'CELL');
-                cell.entity.addEntities(cellEntities, false);
-                const edge = this.#getTile(position, 'EDGE');
-                edge.entity.addEntities(edgeEntities, false);
-            });
-
-            // delete cells and edges that are no longer needed
-            this.#deleteTilesIfEmpty(this.#cells);
-            this.#deleteTilesIfEmpty(this.#edges);
-        }
+        // delete cells and edges that are no longer needed
+        this.#deleteTilesIfEmpty(this.#cells);
+        this.#deleteTilesIfEmpty(this.#edges);
     }
 
     override _update() {
@@ -148,15 +115,40 @@ export class Editor extends Engine {
         return false;
     }
 
+    addTileEntities(position: Position, ...entities: Loophole_Entity[]) {
+        this.#level.entities.push(...entities);
+        this.#addTileEntitiesToGrid(position, ...entities);
+        this.#onLevelChanged(this.#level);
+    }
+
+    #addTileEntitiesToGrid(position: Position, ...entities: Loophole_Entity[]) {
+        const cellEntities: Loophole_Entity[] = [];
+        const edgeEntities: Loophole_Entity[] = [];
+        entities.forEach((entity) => {
+            const type = getLoopholeEntityPositionType(entity);
+            if (type === 'CELL') {
+                cellEntities.push(entity);
+            } else {
+                edgeEntities.push(entity);
+            }
+        });
+
+        if (cellEntities.length > 0) {
+            const cell = this.#getTile(position, 'CELL');
+            cell.entity.addEntities(cellEntities);
+        }
+
+        if (edgeEntities.length > 0) {
+            const edge = this.#getTile(position, 'EDGE');
+            edge.entity.addEntities(edgeEntities);
+        }
+    }
+
     #getTile(position: Loophole_Int2, type: LoopholeEntityPositionType): TileData {
         const positionKey = this.#positionKey(position);
         const list: Record<string, TileData> = type === 'CELL' ? this.#cells : this.#edges;
         if (!list[positionKey]) {
-            const entity = (
-                type === 'CELL'
-                    ? new E_Cell(position, [], this.#onTileEntitiesChanged.bind(this))
-                    : new E_Edge(position, [], this.#onTileEntitiesChanged.bind(this))
-            )
+            const entity = (type === 'CELL' ? new E_Cell(position) : new E_Edge(position))
                 .setPosition({
                     x: position.x * TILE_SIZE,
                     y: position.y * TILE_SIZE,
@@ -181,10 +173,6 @@ export class Editor extends Engine {
         const [x, y] = key.split(',').map(Number);
 
         return { x, y };
-    }
-
-    #onTileEntitiesChanged(tile: E_Tile) {
-        console.log('tile entities changed', tile.tilePosition);
     }
 
     #deleteTilesIfEmpty(tiles: Record<string, TileData>) {

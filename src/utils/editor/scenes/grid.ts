@@ -3,17 +3,17 @@ import { Entity } from '../../engine/entities';
 import { Scene } from '../../engine/systems/scene';
 import {
     ENTITY_METADATA,
+    ENTITY_TYPE_DRAW_ORDER,
     TILE_CENTER_FRACTION,
     TILE_EDGE_HEIGHT_FRACTION,
     TILE_EDGE_WIDTH_FRACTION,
     TILE_SIZE,
 } from '../../utils';
 import type { Loophole_Entity, Loophole_Int2 } from '../externalLevelSchema';
-import type { OnTileChangedCallback } from '..';
 import { C_PointerTarget } from '../../engine/components/PointerTarget';
-import type { Component, C_Drawable } from '../../engine/components';
-import { C_Image } from '@/utils/engine/components/Image';
+import type { Component } from '../../engine/components';
 import { getAppStore } from '@/utils/store';
+import { C_Image } from '@/utils/engine/components/Image';
 
 const GRID_BUFFER = 2;
 
@@ -79,22 +79,14 @@ export abstract class E_Tile extends Entity {
     _tilePosition: Loophole_Int2;
     _entities: Loophole_Entity[] = [];
 
-    #onChanged: OnTileChangedCallback;
+    protected _images: C_Image[] = [];
+    protected _entitiesDirty: boolean = true;
 
-    constructor(
-        name: string,
-        position: Loophole_Int2,
-        entities: Loophole_Entity[],
-        onChanged: OnTileChangedCallback,
-        ...components: Component[]
-    ) {
+    constructor(name: string, position: Loophole_Int2, ...components: Component[]) {
         super(name, ...components);
 
         this.setPosition(position);
         this._tilePosition = position;
-        this.#onChanged = onChanged;
-
-        this.addEntities(entities, false);
     }
 
     get tilePosition(): Readonly<Loophole_Int2> {
@@ -109,52 +101,77 @@ export abstract class E_Tile extends Entity {
         return this._entities;
     }
 
-    addEntities(entities: Loophole_Entity[], notify: boolean = true) {
+    addEntities(entities: Loophole_Entity[]) {
         this._entities.push(...entities);
-        if (notify) {
-            this.#onChanged(this);
-        }
-    }
-
-    removeEntity(entity: Loophole_Entity) {
-        this._entities = this._entities.filter((e) => e !== entity);
+        this._entities.sort(
+            (a, b) => ENTITY_TYPE_DRAW_ORDER[a.entityType] - ENTITY_TYPE_DRAW_ORDER[b.entityType],
+        );
+        console.log('Sorted entities:', this._entities);
+        this._entitiesDirty = true;
     }
 
     clearEntities() {
         this._entities = [];
+        this._entitiesDirty = true;
     }
 }
 
 export class E_Cell extends E_Tile {
-    #drawable: C_Drawable;
     #pointerTarget: C_PointerTarget;
+    #cell: Entity;
 
-    constructor(
-        position: Loophole_Int2,
-        entities: Loophole_Entity[],
-        onChanged: OnTileChangedCallback,
-    ) {
-        super('cell', position, entities, onChanged);
+    constructor(position: Loophole_Int2) {
+        super('cell', position);
 
-        this.#drawable = new C_Image('shape', ENTITY_METADATA['BUTTON'].name, {
-            imageSmoothingEnabled: false,
-        }); //new C_Shape('shape', 'RECT');
         this.#pointerTarget = new C_PointerTarget();
-        this.addChildren(
-            new Entity('cell-shape', this.#drawable, this.#pointerTarget).setScale({
-                x: TILE_CENTER_FRACTION,
-                y: TILE_CENTER_FRACTION,
-            }),
-        );
+        this.#cell = new Entity('cell-shape', this.#pointerTarget).setScale({
+            x: TILE_CENTER_FRACTION,
+            y: TILE_CENTER_FRACTION,
+        });
+        this.addChildren(this.#cell);
     }
 
     override update(): boolean {
-        this.#drawable.style.globalAlpha = this.#pointerTarget.isPointerOver ? 0.5 : 1;
         if (this.#pointerTarget.isPointerOver) {
             getAppStore().setHighlightedEngineTile(this);
         }
 
-        return true;
+        if (this._entitiesDirty) {
+            while (this._images.length < this._entities.length) {
+                const img = new C_Image('entityImage', '', {
+                    imageSmoothingEnabled: false,
+                }).setEnabled(false);
+                this.#cell.addComponents(img);
+                this._images.push(img);
+            }
+
+            for (let i = 0; i < this._images.length; i++) {
+                if (i < this._entities.length) {
+                    const img = this._images[i];
+                    img.setEnabled(true);
+
+                    const entity = this._entities[i];
+                    if ('mushroomType' in entity) {
+                        img.imageName =
+                            entity.mushroomType === 'BLUE'
+                                ? 'MUSHROOM_BLUE'
+                                : entity.mushroomType === 'GREEN'
+                                  ? 'MUSHROOM_GREEN'
+                                  : 'MUSHROOM_RED';
+                    } else {
+                        const { name } = ENTITY_METADATA[entity.entityType];
+                        img.imageName = name;
+                    }
+                } else {
+                    this._images[i].setEnabled(false);
+                }
+            }
+
+            this._entitiesDirty = false;
+            return true;
+        }
+
+        return false;
     }
 }
 
@@ -162,47 +179,48 @@ interface EdgeData {
     rootEntity: Entity;
     shape: C_Shape;
     pointerTarget: C_PointerTarget;
+    image: C_Image;
 }
 
 export class E_Edge extends E_Tile {
     #rightEdge: EdgeData;
     #topEdge: EdgeData;
 
-    constructor(
-        position: Loophole_Int2,
-        entities: Loophole_Entity[],
-        onChanged: OnTileChangedCallback,
-    ) {
-        super('edge', position, entities, onChanged);
+    constructor(position: Loophole_Int2) {
+        super('edge', position);
 
-        const rightEdgeShape = new C_Shape('shape', 'RECT');
+        const rightEdgeImage = new C_Image('rightEdgeImage', '', { imageSmoothingEnabled: false });
+        const rightEdgeShape = new C_Shape('shape', 'RECT', { imageSmoothingEnabled: true });
         const rightEdgePointerTarget = new C_PointerTarget();
         this.#rightEdge = {
             rootEntity: new Entity('rightEdge', rightEdgeShape)
                 .setPosition({ x: 0.5, y: 0 })
                 .setScale({ x: TILE_EDGE_HEIGHT_FRACTION, y: TILE_EDGE_WIDTH_FRACTION })
-                .addComponents(rightEdgeShape, rightEdgePointerTarget),
+                .addComponents(rightEdgeShape, rightEdgeImage, rightEdgePointerTarget),
             shape: rightEdgeShape,
             pointerTarget: rightEdgePointerTarget,
+            image: rightEdgeImage,
         };
 
-        const topEdgeShape = new C_Shape('shape', 'RECT');
+        const topEdgeImage = new C_Image('topEdgeImage', '', { imageSmoothingEnabled: false });
+        const topEdgeShape = new C_Shape('shape', 'RECT', {
+            imageSmoothingEnabled: true,
+        });
         const topEdgePointerTarget = new C_PointerTarget();
         this.#topEdge = {
             rootEntity: new Entity('topEdge', topEdgeShape)
                 .setPosition({ x: 0, y: -0.5 })
                 .setScale({ x: TILE_EDGE_WIDTH_FRACTION, y: TILE_EDGE_HEIGHT_FRACTION })
-                .addComponents(topEdgeShape, topEdgePointerTarget),
+                .addComponents(topEdgeShape, topEdgeImage, topEdgePointerTarget),
             shape: topEdgeShape,
             pointerTarget: topEdgePointerTarget,
+            image: topEdgeImage,
         };
 
         this.addChildren(this.#rightEdge.rootEntity, this.#topEdge.rootEntity);
     }
 
-    override update(deltaTime: number): boolean {
-        super.update(deltaTime);
-
+    override update(): boolean {
         const { setHighlightedEngineTile } = getAppStore();
         if (this.#rightEdge.pointerTarget.isPointerOver) {
             setHighlightedEngineTile(this);
@@ -211,12 +229,28 @@ export class E_Edge extends E_Tile {
             setHighlightedEngineTile(this);
         }
 
-        return true;
+        if (this._entitiesDirty) {
+            this._entitiesDirty = false;
+
+            return true;
+        }
+
+        return false;
     }
 }
 
 export class GridScene extends Scene {
     override create() {
-        this.addEntities(new E_Grid().setZIndex(-1));
+        this.addEntities(
+            new E_Grid().setZIndex(-1),
+            new Entity('origin')
+                .addComponents(
+                    new C_Shape('origin', 'ELLIPSE', {
+                        fillStyle: 'black',
+                    }),
+                )
+                .setZIndex(0)
+                .setScale({ x: 12, y: 12 }),
+        );
     }
 }

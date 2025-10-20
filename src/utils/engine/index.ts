@@ -108,7 +108,7 @@ export class Engine {
         window.engine = this;
         this._rootEntity = new Entity('root');
         this._renderSystem = new RenderSystem(this);
-        this._sceneSystem = new SceneSystem(this._rootEntity);
+        this._sceneSystem = new SceneSystem(this, this._rootEntity);
         this._pointerSystem = new PointerSystem(this);
         this._imageSystem = new ImageSystem();
 
@@ -237,6 +237,7 @@ export class Engine {
     }
 
     addSceneEntities(sceneName: string, ...entities: Entity[]): void {
+        console.log('Adding entities to scene:', sceneName, entities);
         this._sceneSystem.addEntities(sceneName, ...entities);
     }
 

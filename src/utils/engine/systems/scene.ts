@@ -1,3 +1,4 @@
+import type { Engine } from '..';
 import { Entity } from '../entities';
 
 const DEFAULT_SCENE_NAME = 'default-scene';
@@ -31,7 +32,8 @@ export class Scene {
         this.#rootEntity = rootEntity;
     }
 
-    create(): void {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    create(_engine: Engine): void {
         return;
     }
 
@@ -52,6 +54,8 @@ export class Scene {
 export type SceneIdentifier = Scene | string | number | null;
 
 export class SceneSystem {
+    #engine: Engine;
+
     #queuedNewScenes: Scene[] = [];
     #activeScenesByID: Map<number, Scene> = new Map();
     #activeScenesByName: Map<string, Scene> = new Map();
@@ -62,7 +66,8 @@ export class SceneSystem {
     #worldRootEntity: Entity;
     #sceneRootEntities: Map<number, Entity> = new Map();
 
-    constructor(worldRootEntity: Entity) {
+    constructor(engine: Engine, worldRootEntity: Entity) {
+        this.#engine = engine;
         this.#worldRootEntity = worldRootEntity;
     }
 
@@ -143,7 +148,7 @@ export class SceneSystem {
         }
 
         scene.rootEntity = rootEntity;
-        scene.create();
+        scene.create(this.#engine);
     }
 
     #performQueuedUpdate(): boolean {

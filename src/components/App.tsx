@@ -1,16 +1,26 @@
 import { useEffect, useRef } from 'react';
 import { EngineCanvas } from './engine/EngineCanvas';
 import { Editor } from '../utils/editor';
-import type { Engine } from '../utils/engine';
 import TopPanel from './ui/TopPanel';
 import TilePicker from './ui/TilePicker';
 import { FPSCounter } from './engine/FPSCounter';
+import { useAppStore } from '@/utils/store';
 
 function App() {
-    const engineRef = useRef<Engine | null>(null);
+    const engineRef = useRef<Editor | null>(null);
+    const levels = useAppStore((state) => state.levels);
+    const activeLevelID = useAppStore((state) => state.activeLevelID);
+    const updateLevel = useAppStore((state) => state.updateLevel);
+    const level = levels[activeLevelID];
+
     useEffect(() => {
-        engineRef.current = window.engine || new Editor();
-    }, []);
+        if (!window.engine) {
+            engineRef.current = new Editor(level.level, (level) => updateLevel({ level }), {});
+        } else {
+            engineRef.current = window.engine as Editor;
+            engineRef.current.level = level.level;
+        }
+    }, [level, updateLevel]);
 
     return (
         <div className="h-screen w-screen flex flex-col">
