@@ -4,6 +4,7 @@ import type {
     Loophole_Curtain,
     Loophole_Door,
     Loophole_Entity,
+    Loophole_EntityType,
     Loophole_ExtendedEntityType,
     Loophole_Glass,
     Loophole_Int2,
@@ -81,6 +82,9 @@ interface EntityMetadata {
     name: string;
     description: string;
     src: string;
+    type: Loophole_EntityType;
+    extendedType: Loophole_ExtendedEntityType;
+    positionType: LoopholeEntityPositionType;
     createEntity: (position: Loophole_Int2) => Loophole_Entity;
 }
 
@@ -89,6 +93,9 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         name: 'Time Machine',
         description: 'A time machine that the player will spawn inside.',
         src: 'pixel/time-machine.png',
+        type: 'TIME_MACHINE',
+        extendedType: 'TIME_MACHINE',
+        positionType: 'CELL',
         createEntity: (position: Loophole_Int2): Loophole_TimeMachine => ({
             entityType: 'TIME_MACHINE',
             position,
@@ -99,6 +106,9 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         name: 'Wall',
         description: 'A wall that blocks vision and movement.',
         src: 'pixel/wall.png',
+        type: 'WALL',
+        extendedType: 'WALL',
+        positionType: 'EDGE',
         createEntity: (position: Loophole_Int2): Loophole_Wall => ({
             entityType: 'WALL',
             edgePosition: { cell: position, alignment: 'RIGHT' },
@@ -108,6 +118,9 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         name: 'Curtain',
         description: 'A curtain that blocks vision and movement.',
         src: 'pixel/curtain.png',
+        type: 'CURTAIN',
+        extendedType: 'CURTAIN',
+        positionType: 'EDGE',
         createEntity: (position: Loophole_Int2): Loophole_Curtain => ({
             entityType: 'CURTAIN',
             edgePosition: { cell: position, alignment: 'RIGHT' },
@@ -117,6 +130,9 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         name: 'One Way',
         description: 'A one way that allows movement in one direction.',
         src: 'pixel/one-way.png',
+        type: 'ONE_WAY',
+        extendedType: 'ONE_WAY',
+        positionType: 'EDGE',
         createEntity: (position: Loophole_Int2): Loophole_OneWay => ({
             entityType: 'ONE_WAY',
             edgePosition: { cell: position, alignment: 'RIGHT' },
@@ -127,6 +143,9 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         name: 'Glass',
         description: 'A glass that blocks vision and movement.',
         src: 'pixel/glass.png',
+        type: 'GLASS',
+        extendedType: 'GLASS',
+        positionType: 'EDGE',
         createEntity: (position: Loophole_Int2): Loophole_Glass => ({
             entityType: 'GLASS',
             edgePosition: { cell: position, alignment: 'RIGHT' },
@@ -136,6 +155,9 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         name: 'Staff',
         description: 'A staff that allows movement in one direction.',
         src: 'pixel/box.png',
+        type: 'STAFF',
+        extendedType: 'STAFF',
+        positionType: 'CELL',
         createEntity: (position: Loophole_Int2): Loophole_Staff => ({
             entityType: 'STAFF',
             position,
@@ -145,6 +167,9 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         name: 'Sauce',
         description: 'A sauce that allows movement in one direction.',
         src: 'pixel/sauce.png',
+        type: 'SAUCE',
+        extendedType: 'SAUCE',
+        positionType: 'CELL',
         createEntity: (position: Loophole_Int2): Loophole_Sauce => ({
             entityType: 'SAUCE',
             position,
@@ -154,6 +179,9 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         name: 'Button',
         description: 'A button that allows movement in one direction.',
         src: 'pixel/button.png',
+        type: 'BUTTON',
+        extendedType: 'BUTTON',
+        positionType: 'CELL',
         createEntity: (position: Loophole_Int2): Loophole_Button => ({
             entityType: 'BUTTON',
             position,
@@ -164,6 +192,9 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         name: 'Door',
         description: 'A door that allows movement in one direction.',
         src: 'pixel/door.png',
+        type: 'DOOR',
+        extendedType: 'DOOR',
+        positionType: 'CELL',
         createEntity: (position: Loophole_Int2): Loophole_Door => ({
             entityType: 'DOOR',
             edgePosition: { cell: position, alignment: 'RIGHT' },
@@ -174,6 +205,9 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         name: 'Wire',
         description: 'A wire that allows movement in one direction.',
         src: 'pixel/wire.png',
+        type: 'WIRE',
+        extendedType: 'WIRE',
+        positionType: 'CELL',
         createEntity: (position: Loophole_Int2): Loophole_Wire => ({
             entityType: 'WIRE',
             position,
@@ -186,6 +220,9 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         name: 'Invisibility Pickup',
         description: 'A mushroom that allows movement in one direction.',
         src: 'pixel/invis.png',
+        type: 'MUSHROOM',
+        extendedType: 'MUSHROOM_BLUE',
+        positionType: 'CELL',
         createEntity: (position: Loophole_Int2): Loophole_Mushroom => ({
             entityType: 'MUSHROOM',
             position,
@@ -196,6 +233,9 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         name: 'Drugs Pickup',
         description: 'A mushroom that allows movement in one direction.',
         src: 'pixel/drugs.png',
+        type: 'MUSHROOM',
+        extendedType: 'MUSHROOM_GREEN',
+        positionType: 'CELL',
         createEntity: (position: Loophole_Int2): Loophole_Mushroom => ({
             entityType: 'MUSHROOM',
             position,
@@ -206,6 +246,9 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         name: 'Shield Pickup',
         description: 'A mushroom that allows movement in one direction.',
         src: 'pixel/shield.png',
+        type: 'MUSHROOM',
+        extendedType: 'MUSHROOM_RED',
+        positionType: 'CELL',
         createEntity: (position: Loophole_Int2): Loophole_Mushroom => ({
             entityType: 'MUSHROOM',
             position,

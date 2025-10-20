@@ -6,16 +6,16 @@ import {
     type RenderStyle,
 } from '../systems/render';
 import type { Position } from '../types';
-import { DrawableComponent } from './index';
+import { C_Drawable } from './index';
 
 type Shape = 'RECT' | 'ELLIPSE';
 
-export class C_Shape extends DrawableComponent {
+export class C_Shape extends C_Drawable {
     #shape: Shape;
     #repeat: Position | null;
 
     constructor(name: string, shape: Shape, style?: RenderStyle, repeat?: Position) {
-        super(name, style);
+        super(name, shape === 'ELLIPSE' ? { x: 0, y: 0 } : { x: 0.5, y: 0.5 }, style);
 
         this.#shape = shape;
         this.#repeat = repeat ?? null;
@@ -37,10 +37,10 @@ export class C_Shape extends DrawableComponent {
         switch (this.#shape) {
             case 'RECT': {
                 const data: DrawDataShape = {
-                    x: this.entity.transform.position.x - this.entity.transform.scale.x / 2,
-                    y: this.entity.transform.position.y - this.entity.transform.scale.y / 2,
-                    w: this.entity.transform.scale.x,
-                    h: this.entity.transform.scale.y,
+                    x: -this._origin.x,
+                    y: -this._origin.y,
+                    w: 1,
+                    h: 1,
                 };
                 if (this.#repeat) {
                     data.rx = this.#repeat.x;
@@ -53,10 +53,10 @@ export class C_Shape extends DrawableComponent {
             }
             case 'ELLIPSE': {
                 const data: DrawDataShape = {
-                    x: this.entity.transform.position.x,
-                    y: this.entity.transform.position.y,
-                    w: this.entity.transform.scale.x,
-                    h: this.entity.transform.scale.y,
+                    x: -this._origin.x,
+                    y: -this._origin.y,
+                    w: 1,
+                    h: 1,
                 };
                 if (this.#repeat) {
                     data.rx = this.#repeat.x;

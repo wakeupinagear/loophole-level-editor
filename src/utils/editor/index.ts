@@ -11,6 +11,7 @@ import {
     TILE_SIZE,
     type LoopholeEntityPositionType,
 } from '../utils';
+import { getAppStore } from '../store';
 
 const SCENES: AvailableScenes = {
     [TestScene.name]: (name) => new TestScene(name),
@@ -141,6 +142,12 @@ export class Editor extends Engine {
         }
     }
 
+    override _update() {
+        getAppStore().setHighlightedEngineTile(null);
+
+        return false;
+    }
+
     #getTile(position: Loophole_Int2, type: LoopholeEntityPositionType): TileData {
         const positionKey = this.#positionKey(position);
         const list: Record<string, TileData> = type === 'CELL' ? this.#cells : this.#edges;
@@ -177,7 +184,7 @@ export class Editor extends Engine {
     }
 
     #onTileEntitiesChanged(tile: E_Tile) {
-        console.log('tile entities changed', tile.position);
+        console.log('tile entities changed', tile.tilePosition);
     }
 
     #deleteTilesIfEmpty(tiles: Record<string, TileData>) {

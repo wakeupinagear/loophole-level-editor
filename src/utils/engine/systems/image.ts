@@ -1,8 +1,6 @@
 export interface LoadedImage {
     name: string;
     image: HTMLImageElement;
-    width: number;
-    height: number;
 }
 
 export class ImageSystem {
@@ -27,10 +25,7 @@ export class ImageSystem {
                 this.#loadedImages[name] = {
                     name,
                     image,
-                    width: image.width,
-                    height: image.height,
                 };
-                console.log(`Loaded image: ${name}`, this.#loadedImages[name]);
                 this.#loadingImages.delete(name);
             };
             image.onerror = () => {
@@ -41,8 +36,6 @@ export class ImageSystem {
             this.#loadedImages[name] = {
                 name,
                 image: src,
-                width: src.width,
-                height: src.height,
             };
         }
     }

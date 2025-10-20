@@ -11,8 +11,9 @@ import {
 import type { Loophole_Entity, Loophole_Int2 } from '../externalLevelSchema';
 import type { OnTileChangedCallback } from '..';
 import { C_PointerTarget } from '../../engine/components/PointerTarget';
-import type { Component, DrawableComponent } from '../../engine/components';
+import type { Component, C_Drawable } from '../../engine/components';
 import { C_Image } from '@/utils/engine/components/Image';
+import { getAppStore } from '@/utils/store';
 
 const GRID_BUFFER = 2;
 
@@ -75,7 +76,7 @@ class E_Grid extends Entity {
 }
 
 export abstract class E_Tile extends Entity {
-    _position: Loophole_Int2;
+    _tilePosition: Loophole_Int2;
     _entities: Loophole_Entity[] = [];
 
     #onChanged: OnTileChangedCallback;
@@ -90,18 +91,18 @@ export abstract class E_Tile extends Entity {
         super(name, ...components);
 
         this.setPosition(position);
-        this._position = position;
+        this._tilePosition = position;
         this.#onChanged = onChanged;
 
         this.addEntities(entities, false);
     }
 
-    get position(): Readonly<Loophole_Int2> {
-        return this._position;
+    get tilePosition(): Readonly<Loophole_Int2> {
+        return this._tilePosition;
     }
 
-    set position(position: Loophole_Int2) {
-        this._position = position;
+    set tilePosition(position: Loophole_Int2) {
+        this._tilePosition = position;
     }
 
     get entities(): ReadonlyArray<Loophole_Entity> {
@@ -125,7 +126,7 @@ export abstract class E_Tile extends Entity {
 }
 
 export class E_Cell extends E_Tile {
-    #drawable: DrawableComponent;
+    #drawable: C_Drawable;
     #pointerTarget: C_PointerTarget;
 
     constructor(
@@ -135,7 +136,9 @@ export class E_Cell extends E_Tile {
     ) {
         super('cell', position, entities, onChanged);
 
-        this.#drawable = new C_Image('shape', ENTITY_METADATA['BUTTON'].name); //new C_Shape('shape', 'RECT');
+        this.#drawable = new C_Image('shape', ENTITY_METADATA['BUTTON'].name, {
+            imageSmoothingEnabled: false,
+        }); //new C_Shape('shape', 'RECT');
         this.#pointerTarget = new C_PointerTarget();
         this.addChildren(
             new Entity('cell-shape', this.#drawable, this.#pointerTarget).setScale({
@@ -146,7 +149,10 @@ export class E_Cell extends E_Tile {
     }
 
     override update(): boolean {
-        this.#drawable.style.fillStyle = this.#pointerTarget.isPointerOver ? 'green' : 'darkgrey';
+        this.#drawable.style.globalAlpha = this.#pointerTarget.isPointerOver ? 0.5 : 1;
+        if (this.#pointerTarget.isPointerOver) {
+            getAppStore().setHighlightedEngineTile(this);
+        }
 
         return true;
     }
@@ -197,12 +203,13 @@ export class E_Edge extends E_Tile {
     override update(deltaTime: number): boolean {
         super.update(deltaTime);
 
-        this.#rightEdge.shape.style.fillStyle = this.#rightEdge.pointerTarget.isPointerOver
-            ? 'green'
-            : 'grey';
-        this.#topEdge.shape.style.fillStyle = this.#topEdge.pointerTarget.isPointerOver
-            ? 'green'
-            : 'grey';
+        const { setHighlightedEngineTile } = getAppStore();
+        if (this.#rightEdge.pointerTarget.isPointerOver) {
+            setHighlightedEngineTile(this);
+        }
+        if (this.#topEdge.pointerTarget.isPointerOver) {
+            setHighlightedEngineTile(this);
+        }
 
         return true;
     }

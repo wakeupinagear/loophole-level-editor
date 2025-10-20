@@ -167,8 +167,9 @@ export class PointerSystem {
                 this.#dragStartCameraPosition = null;
             }
 
-            if (window.engine.pointerState.scrollDelta !== 0) {
-                window.engine.zoomCamera(window.engine.pointerState.scrollDelta);
+            if (this.#pointerState.scrollDelta !== 0) {
+                window.engine.zoomCamera(this.#pointerState.scrollDelta);
+                this.#pointerState.scrollDelta = 0;
             }
         }
     }

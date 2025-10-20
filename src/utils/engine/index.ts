@@ -77,19 +77,19 @@ export class Engine {
     protected static _nextId: number = 1;
     protected readonly _id: number = Engine._nextId++;
 
-    _canvas: HTMLCanvasElement | null = null;
-    _options: Required<EngineOptions> = { ...DEFAULT_ENGINE_OPTIONS };
+    protected _canvas: HTMLCanvasElement | null = null;
+    protected _options: Required<EngineOptions> = { ...DEFAULT_ENGINE_OPTIONS };
 
-    _camera: Required<CameraState>;
-    _rootEntity: Entity;
+    protected _camera: Required<CameraState>;
+    protected _rootEntity: Entity;
 
-    _worldToScreenMatrix: DOMMatrix | null = null;
+    protected _worldToScreenMatrix: DOMMatrix | null = null;
     #worldToScreenMatrixDirty: boolean = true;
 
-    _renderSystem: RenderSystem;
-    _sceneSystem: SceneSystem;
-    _pointerSystem: PointerSystem;
-    _imageSystem: ImageSystem;
+    protected _renderSystem: RenderSystem;
+    protected _sceneSystem: SceneSystem;
+    protected _pointerSystem: PointerSystem;
+    protected _imageSystem: ImageSystem;
 
     #forceRender: boolean = true;
 
@@ -339,7 +339,7 @@ export class Engine {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _update(_deltaTime: number): boolean {
+    protected _update(_deltaTime: number): boolean {
         return false;
     }
 

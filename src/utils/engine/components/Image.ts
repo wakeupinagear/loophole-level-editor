@@ -1,4 +1,4 @@
-import { DrawableComponent } from '.';
+import { C_Drawable } from '.';
 import {
     RENDER_CMD,
     RenderCommand,
@@ -8,15 +8,23 @@ import {
 } from '../systems/render';
 import type { Position } from '../types';
 
-export class C_Image extends DrawableComponent {
+export class C_Image extends C_Drawable {
     #imageName: string;
     #repeat: Position | null;
 
     constructor(name: string, imageName: string, style?: RenderStyle, repeat?: Position) {
-        super(name, style);
+        super(name, { x: 0.5, y: 0.5 }, style);
 
         this.#imageName = imageName;
         this.#repeat = repeat ?? null;
+    }
+
+    get imageName(): string {
+        return this.#imageName;
+    }
+
+    set imageName(imageName: string) {
+        this.#imageName = imageName;
     }
 
     get repeat(): Position | null {
@@ -33,10 +41,10 @@ export class C_Image extends DrawableComponent {
         }
 
         const data: DrawDataImage = {
-            x: this.entity.transform.position.x - this.entity.transform.scale.x / 2,
-            y: this.entity.transform.position.y - this.entity.transform.scale.y / 2,
-            w: this.entity.transform.scale.x,
-            h: this.entity.transform.scale.y,
+            x: -0.5,
+            y: -0.5,
+            w: 1,
+            h: 1,
             img: this.#imageName,
         };
         if (this.#repeat) {

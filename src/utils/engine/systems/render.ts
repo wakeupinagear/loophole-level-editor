@@ -15,6 +15,7 @@ export interface RenderStyle {
     shadowOffsetX?: number;
     shadowOffsetY?: number;
     globalAlpha?: number;
+    imageSmoothingEnabled?: boolean;
 }
 
 export const DEFAULT_RENDER_STYLE: Required<RenderStyle> = {
@@ -31,6 +32,7 @@ export const DEFAULT_RENDER_STYLE: Required<RenderStyle> = {
     shadowOffsetX: 0,
     shadowOffsetY: 0,
     globalAlpha: 1,
+    imageSmoothingEnabled: true,
 };
 
 export const RENDER_CMD = {
@@ -125,6 +127,7 @@ export class RenderSystem {
         for (const command of stream) {
             const { style: _style, data } = command;
             const style = { ...DEFAULT_RENDER_STYLE, ..._style };
+
             switch (command.cmd) {
                 case RENDER_CMD.PUSH_TRANSFORM: {
                     if (!data || !('t' in data)) {
@@ -154,12 +157,7 @@ export class RenderSystem {
                     if (style.strokeStyle && style.lineWidth && style.lineWidth > 0) {
                         for (let i = 0; i < rx; i++) {
                             for (let j = 0; j < ry; j++) {
-                                ctx.strokeRect(
-                                    x + i * (w + style.lineWidth / 2),
-                                    y + j * (h + style.lineWidth / 2),
-                                    w,
-                                    h,
-                                );
+                                ctx.strokeRect(x + i, y + j, w, h);
                             }
                         }
                     }
@@ -168,12 +166,7 @@ export class RenderSystem {
                     if (style.fillStyle) {
                         for (let i = 0; i < rx; i++) {
                             for (let j = 0; j < ry; j++) {
-                                ctx.fillRect(
-                                    x + i * (w + style.lineWidth / 2),
-                                    y + j * (h + style.lineWidth / 2),
-                                    w,
-                                    h,
-                                );
+                                ctx.fillRect(x + i, y + j, w, h);
                             }
                         }
                     }
@@ -185,17 +178,19 @@ export class RenderSystem {
                         continue;
                     }
 
-                    const { x, y, w, h } = data;
-                    this.#applyStyle(ctx, style);
-                    ctx.beginPath();
-                    ctx.ellipse(x, y, w / 2, h / 2, 0, 0, 2 * Math.PI);
-                    if (style.fillStyle) {
-                        ctx.fill();
+                    if (style.globalAlpha > 0) {
+                        const { x, y, w, h } = data;
+                        this.#applyStyle(ctx, style);
+                        ctx.beginPath();
+                        ctx.ellipse(x, y, w / 2, h / 2, 0, 0, 2 * Math.PI);
+                        if (style.fillStyle) {
+                            ctx.fill();
+                        }
+                        if (style.strokeStyle) {
+                            ctx.stroke();
+                        }
+                        ctx.closePath();
                     }
-                    if (style.strokeStyle) {
-                        ctx.stroke();
-                    }
-                    ctx.closePath();
 
                     break;
                 }
@@ -206,15 +201,15 @@ export class RenderSystem {
                         continue;
                     }
 
-                    const { x, y, w, h, img: imageName } = data;
-                    this.#applyStyle(ctx, style);
-                    const image = this.#engine.getImage(imageName);
-                    console.log('Image:', imageName, image);
-                    if (!image) {
-                        continue;
+                    if (style.globalAlpha > 0) {
+                        const { x, y, w, h, img: imageName } = data;
+                        this.#applyStyle(ctx, style);
+                        const image = this.#engine.getImage(imageName);
+                        if (!image) {
+                            continue;
+                        }
+                        ctx.drawImage(image.image, x, y, w, h);
                     }
-                    console.log('Drawing image:', imageName, image);
-                    ctx.drawImage(image.image, x, y, w, h);
                 }
             }
         }

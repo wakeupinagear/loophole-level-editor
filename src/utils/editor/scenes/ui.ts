@@ -1,52 +1,69 @@
-import { C_Shape } from '../../engine/components/Shape';
+import { ENTITY_METADATA, TILE_CENTER_FRACTION, TILE_SIZE } from '@/utils/utils';
 import { Entity } from '../../engine/entities';
 import { Scene } from '../../engine/systems/scene';
-
-const CURSOR_SIZE = 32;
+import { C_Image } from '@/utils/engine/components/Image';
+import { getAppStore } from '@/utils/store';
 
 class E_Cursor extends Entity {
-    #shapeComp: C_Shape;
-    #opacity: number = 0;
+    #image: C_Image;
 
     constructor() {
-        const comp = new C_Shape('cursor', 'ELLIPSE', {
-            fillStyle: 'white',
+        const comp = new C_Image('cursor', ENTITY_METADATA['MUSHROOM_BLUE'].name, {
+            imageSmoothingEnabled: false,
             globalAlpha: 0,
         });
 
         super('cursor', comp);
 
-        this.setScale({ x: CURSOR_SIZE, y: CURSOR_SIZE });
         this.setZIndex(50);
-        this.#shapeComp = comp;
+        this.setScale({ x: TILE_SIZE * TILE_CENTER_FRACTION, y: TILE_SIZE * TILE_CENTER_FRACTION });
+        this.#image = comp;
     }
 
     override update(deltaTime: number): boolean {
         let updated = super.update(deltaTime);
 
-        const position = window.engine.screenToWorld(window.engine.pointerState);
-        if (
-            position.x !== this._transform.position.x ||
-            position.y !== this._transform.position.y
-        ) {
-            this.setPosition(position);
+        const { selectedEntityType } = getAppStore();
+        let active = false;
+        if (window.engine.pointerState.onScreen && selectedEntityType) {
+            const { positionType, name } = ENTITY_METADATA[selectedEntityType];
+            this.#image.imageName = name;
+            if (positionType === 'CELL') {
+                const x =
+                    Math.round(window.engine.pointerState.worldPosition.x / TILE_SIZE) * TILE_SIZE;
+                const y =
+                    Math.round(window.engine.pointerState.worldPosition.y / TILE_SIZE) * TILE_SIZE;
+                this.setPosition({ x, y });
+
+                active = true;
+            } else if (positionType === 'EDGE') {
+                const cellX = Math.round(window.engine.pointerState.worldPosition.x / TILE_SIZE);
+                const cellY = Math.round(window.engine.pointerState.worldPosition.y / TILE_SIZE);
+                const localX = window.engine.pointerState.worldPosition.x - cellX * TILE_SIZE;
+                const localY = window.engine.pointerState.worldPosition.y - cellY * TILE_SIZE;
+
+                if (Math.abs(localX) > Math.abs(localY)) {
+                    const x = localX > 0 ? (cellX + 0.5) * TILE_SIZE : (cellX - 0.5) * TILE_SIZE;
+                    const y = cellY * TILE_SIZE;
+                    this.setPosition({ x, y });
+                    this.setRotation(0);
+                } else {
+                    const x = cellX * TILE_SIZE;
+                    const y = localY > 0 ? (cellY + 0.5) * TILE_SIZE : (cellY - 0.5) * TILE_SIZE;
+                    this.setPosition({ x, y });
+                    this.setRotation(90);
+                }
+
+                active = true;
+            }
+
             updated = true;
         }
 
-        const active = window.engine.pointerState.onScreen;
         const targetOpacity = active ? 1 : 0;
-        if (this.#opacity !== targetOpacity) {
-            this.#opacity = Math.max(
-                0,
-                Math.min(1, this.#opacity + deltaTime * (active ? 5 : -10)),
-            );
-            this.#shapeComp.style.globalAlpha = this.#opacity;
-            updated = true;
-        }
-
-        const targetScale = CURSOR_SIZE / window.engine.camera.zoom;
-        if (this._transform.scale.x !== targetScale) {
-            this.setScale({ x: targetScale, y: targetScale });
+        const opacity = this.#image.style.globalAlpha ?? 1;
+        if (opacity !== targetOpacity) {
+            this.#image.style.globalAlpha = Math.max(0, Math.min(1, opacity + deltaTime * 10));
             updated = true;
         }
 
@@ -61,3 +78,4 @@ export class UIScene extends Scene {
         this.addEntities(new E_Cursor());
     }
 }
+ 

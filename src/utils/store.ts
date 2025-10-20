@@ -3,6 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { createLevelWithMetadata, type LevelWithMetadata } from './utils';
 import type { Loophole_ExtendedEntityType } from './editor/externalLevelSchema';
 import { useMemo } from 'react';
+import type { E_Tile } from './editor/scenes/grid';
 
 interface AppStore {
     levels: Record<string, LevelWithMetadata>;
@@ -13,6 +14,8 @@ interface AppStore {
     updateLevel: (level: LevelWithMetadata) => void;
     selectedEntityType: Loophole_ExtendedEntityType | null;
     setSelectedEntityType: (entityType: Loophole_ExtendedEntityType) => void;
+    highlightedEngineTile: E_Tile | null;
+    setHighlightedEngineTile: (tile: E_Tile | null) => void;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -45,6 +48,8 @@ export const useAppStore = create<AppStore>()(
                     })),
                 selectedEntityType: null,
                 setSelectedEntityType: (entityType) => set({ selectedEntityType: entityType }),
+                highlightedEngineTile: null,
+                setHighlightedEngineTile: (tile) => set({ highlightedEngineTile: tile }),
             };
         },
         {
@@ -66,3 +71,5 @@ export const useCurrentLevel = (): LevelWithMetadata | null => {
 
     return useMemo(() => levels[activeLevelID ?? ''] || null, [activeLevelID, levels]);
 };
+
+export const getAppStore = () => useAppStore.getState();

@@ -1,5 +1,5 @@
 import type { Entity } from '../entities';
-import type { Renderable } from '../types';
+import type { Position, Renderable } from '../types';
 import type { RenderCommandStream, RenderStyle } from '../systems/render';
 
 export abstract class Component implements Renderable {
@@ -71,12 +71,14 @@ export abstract class Component implements Renderable {
     }
 }
 
-export abstract class DrawableComponent extends Component {
+export abstract class C_Drawable extends Component {
+    protected _origin: Position;
     protected _style: RenderStyle;
 
-    constructor(name: string, style?: RenderStyle) {
+    constructor(name: string, origin: Position, style?: RenderStyle) {
         super(name);
 
+        this._origin = origin;
         this._style = style ?? {};
     }
 
@@ -86,6 +88,15 @@ export abstract class DrawableComponent extends Component {
 
     set style(style: RenderStyle) {
         this._style = { ...this._style, ...style };
+    }
+
+    get origin(): Position {
+        return this._origin;
+    }
+
+    setOrigin(origin: Position): this {
+        this._origin = origin;
+        return this;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
