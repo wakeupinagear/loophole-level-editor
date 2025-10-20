@@ -4,6 +4,7 @@ import { type Position } from './types';
 import type { AvailableScenes, Scene, SceneIdentifier } from './systems/scene';
 import { SceneSystem } from './systems/scene';
 import { MouseButton, PointerSystem, type PointerState } from './systems/pointer';
+import { ImageSystem, type LoadedImage } from './systems/image';
 
 type BrowserEvent =
     | 'mousemove'
@@ -46,24 +47,30 @@ export interface EngineOptions {
     zoomSpeed?: number;
     minZoom?: number;
     maxZoom?: number;
+
     scenes?: AvailableScenes;
+    startScenes?: string[];
 
     cameraStart?: CameraState;
     cameraDrag?: boolean;
     cameraDragButtons?: MouseButton[];
-    startScenes?: string[];
+
+    images?: Record<string, string | HTMLImageElement>;
 }
 
 const DEFAULT_ENGINE_OPTIONS: Required<EngineOptions> = {
     zoomSpeed: 0.001,
     minZoom: 0.1,
     maxZoom: 10,
+
     scenes: {},
+    startScenes: [],
 
     cameraStart: { ...DEFAULT_CAMERA_OPTIONS },
     cameraDrag: false,
     cameraDragButtons: [MouseButton.MIDDLE, MouseButton.RIGHT],
-    startScenes: [],
+
+    images: {},
 };
 
 export class Engine {
@@ -71,7 +78,7 @@ export class Engine {
     protected readonly _id: number = Engine._nextId++;
 
     _canvas: HTMLCanvasElement | null = null;
-    _options: Required<EngineOptions> = { ...DEFAULT_ENGINE_OPTIONS, scenes: {} };
+    _options: Required<EngineOptions> = { ...DEFAULT_ENGINE_OPTIONS };
 
     _camera: Required<CameraState>;
     _rootEntity: Entity;
@@ -82,6 +89,7 @@ export class Engine {
     _renderSystem: RenderSystem;
     _sceneSystem: SceneSystem;
     _pointerSystem: PointerSystem;
+    _imageSystem: ImageSystem;
 
     #forceRender: boolean = true;
 
@@ -99,9 +107,10 @@ export class Engine {
     constructor(options: EngineOptions = {}) {
         window.engine = this;
         this._rootEntity = new Entity('root');
-        this._renderSystem = new RenderSystem();
+        this._renderSystem = new RenderSystem(this);
         this._sceneSystem = new SceneSystem(this._rootEntity);
         this._pointerSystem = new PointerSystem(this);
+        this._imageSystem = new ImageSystem();
 
         this.addBrowserEventHandler('mousedown', (_, data) =>
             this.#setPointerButtonDown(data.button, true),
@@ -276,6 +285,10 @@ export class Engine {
         this.#worldToScreenMatrixDirty = true;
     }
 
+    getImage(name: string): Readonly<LoadedImage> | null {
+        return this._imageSystem.getImage(name);
+    }
+
     addBrowserEventHandler<T extends BrowserEvent>(
         event: T,
         handler: BrowserEventHandler<T>,
@@ -405,12 +418,14 @@ export class Engine {
     }
 
     #applyOptions(newOptions: EngineOptions): void {
-        this._camera.zoom = Math.max(
-            this._options.minZoom,
-            Math.min(this._options.maxZoom, this._camera.zoom),
-        );
-
         this._options = { ...this._options, ...newOptions };
+
+        this.#clampCameraZoom();
+
+        Object.entries(this._options.images).forEach(([name, src]) => {
+            this._imageSystem.loadImage(name, src);
+        });
+        this._options.images = {};
     }
 
     #clampCameraZoom(): void {

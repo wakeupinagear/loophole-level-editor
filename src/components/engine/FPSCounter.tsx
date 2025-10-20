@@ -21,7 +21,7 @@ export function FPSCounter() {
     }, []);
 
     return (
-        <p>
+        <p className="mt-auto text-white font-bold">
             FPS: {stats.fps}
             <br />
             Update: {stats.updateTime.toFixed(1)}ms

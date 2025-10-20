@@ -2,6 +2,7 @@ import { C_Shape } from '../../engine/components/Shape';
 import { Entity } from '../../engine/entities';
 import { Scene } from '../../engine/systems/scene';
 import {
+    ENTITY_METADATA,
     TILE_CENTER_FRACTION,
     TILE_EDGE_HEIGHT_FRACTION,
     TILE_EDGE_WIDTH_FRACTION,
@@ -10,7 +11,8 @@ import {
 import type { Loophole_Entity, Loophole_Int2 } from '../externalLevelSchema';
 import type { OnTileChangedCallback } from '..';
 import { C_PointerTarget } from '../../engine/components/PointerTarget';
-import type { Component } from '../../engine/components';
+import type { Component, DrawableComponent } from '../../engine/components';
+import { C_Image } from '@/utils/engine/components/Image';
 
 const GRID_BUFFER = 2;
 
@@ -123,7 +125,7 @@ export abstract class E_Tile extends Entity {
 }
 
 export class E_Cell extends E_Tile {
-    #shape: C_Shape;
+    #drawable: DrawableComponent;
     #pointerTarget: C_PointerTarget;
 
     constructor(
@@ -133,10 +135,10 @@ export class E_Cell extends E_Tile {
     ) {
         super('cell', position, entities, onChanged);
 
-        this.#shape = new C_Shape('shape', 'RECT');
+        this.#drawable = new C_Image('shape', ENTITY_METADATA['BUTTON'].name); //new C_Shape('shape', 'RECT');
         this.#pointerTarget = new C_PointerTarget();
         this.addChildren(
-            new Entity('cell-shape', this.#shape, this.#pointerTarget).setScale({
+            new Entity('cell-shape', this.#drawable, this.#pointerTarget).setScale({
                 x: TILE_CENTER_FRACTION,
                 y: TILE_CENTER_FRACTION,
             }),
@@ -144,7 +146,7 @@ export class E_Cell extends E_Tile {
     }
 
     override update(): boolean {
-        this.#shape.style.fillStyle = this.#pointerTarget.isPointerOver ? 'green' : 'darkgrey';
+        this.#drawable.style.fillStyle = this.#pointerTarget.isPointerOver ? 'green' : 'darkgrey';
 
         return true;
     }

@@ -1,3 +1,4 @@
+import type { Engine } from '..';
 import type { Entity } from '../entities';
 
 export interface RenderStyle {
@@ -55,6 +56,7 @@ export type DrawDataImage = {
     y: number;
     w: number;
     h: number;
+    img: string;
     sx?: number;
     sy?: number;
     sw?: number;
@@ -108,6 +110,12 @@ export class RenderCommand {
 export type RenderCommandStream = RenderCommand[];
 
 export class RenderSystem {
+    #engine: Engine;
+
+    constructor(engine: Engine) {
+        this.#engine = engine;
+    }
+
     render = (ctx: CanvasRenderingContext2D, rootEntity: Entity) => {
         const stream: RenderCommandStream = [];
         rootEntity.queueRenderCommands(stream);
@@ -193,6 +201,21 @@ export class RenderSystem {
                 }
                 default:
                     break;
+                case RENDER_CMD.DRAW_IMAGE: {
+                    if (!data || !('img' in data)) {
+                        continue;
+                    }
+
+                    const { x, y, w, h, img: imageName } = data;
+                    this.#applyStyle(ctx, style);
+                    const image = this.#engine.getImage(imageName);
+                    console.log('Image:', imageName, image);
+                    if (!image) {
+                        continue;
+                    }
+                    console.log('Drawing image:', imageName, image);
+                    ctx.drawImage(image.image, x, y, w, h);
+                }
             }
         }
     };

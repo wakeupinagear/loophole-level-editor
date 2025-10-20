@@ -5,6 +5,7 @@ import { E_Cell, E_Edge, E_Tile, GridScene } from './scenes/grid';
 import { TestScene } from './scenes/test';
 import { UIScene } from './scenes/ui';
 import {
+    ENTITY_METADATA,
     getLoopholeEntityPosition,
     getLoopholeEntityPositionType,
     TILE_SIZE,
@@ -46,9 +47,18 @@ export class Editor extends Engine {
             maxZoom: 2,
             cameraDrag: true,
             ...options,
+            images: {
+                ...Object.values(ENTITY_METADATA).reduce(
+                    (acc, { src, name }) => ({
+                        ...acc,
+                        [name]: src,
+                    }),
+                    {},
+                ),
+                ...options.images,
+            },
         });
 
-        /*
         const entities: Loophole_Entity[] = [];
         for (let x = -10; x < 10; x++) {
             for (let y = -10; y < 10; y++) {
@@ -75,7 +85,6 @@ export class Editor extends Engine {
             },
             exitPosition: { x: 10, y: 10 },
         };
-        */
     }
 
     get level(): Loophole_Level | null {

@@ -4,6 +4,7 @@ import { Editor } from '../utils/editor';
 import type { Engine } from '../utils/engine';
 import TopPanel from './ui/TopPanel';
 import TilePicker from './ui/TilePicker';
+import { FPSCounter } from './engine/FPSCounter';
 
 function App() {
     const engineRef = useRef<Engine | null>(null);
@@ -19,6 +20,7 @@ function App() {
             <div className="h-full flex flex-col p-4 gap-4 z-10 pointer-events-none">
                 <TopPanel />
                 <TilePicker />
+                <FPSCounter />
             </div>
         </div>
     );
