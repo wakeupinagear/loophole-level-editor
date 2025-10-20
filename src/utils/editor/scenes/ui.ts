@@ -1,7 +1,5 @@
-import { C_CameraDrag } from '../../engine/components/CameraDrag';
 import { C_Shape } from '../../engine/components/Shape';
 import { Entity } from '../../engine/entities';
-import { MouseButton } from '../../engine/systems/pointer';
 import { Scene } from '../../engine/systems/scene';
 
 const CURSOR_SIZE = 32;
@@ -16,7 +14,7 @@ class E_Cursor extends Entity {
             globalAlpha: 0,
         });
 
-        super('cursor', comp, new C_CameraDrag(MouseButton.MIDDLE, MouseButton.RIGHT));
+        super('cursor', comp);
 
         this.setScale({ x: CURSOR_SIZE, y: CURSOR_SIZE });
         this.setZIndex(50);

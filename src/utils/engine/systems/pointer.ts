@@ -42,6 +42,9 @@ export class PointerSystem {
     };
     #lastPointerState: PointerState = { ...this.#pointerState };
 
+    #dragStartMousePosition: Position | null = null;
+    #dragStartCameraPosition: Position | null = null;
+
     constructor(engine: Engine) {
         this.#engine = engine;
     }
@@ -131,6 +134,42 @@ export class PointerSystem {
 
         if (this.#pointerState.justMovedOnScreen) {
             this.#pointerState.justMovedOnScreen = false;
+        }
+
+        if (this.#engine.options.cameraDrag) {
+            const buttonStates = this.#engine.options.cameraDragButtons.map(
+                (btn) => this.#pointerState[btn],
+            );
+            if (buttonStates.some((state) => state.pressed) && !this.#dragStartMousePosition) {
+                this.#dragStartMousePosition = { ...window.engine.pointerState };
+                this.#dragStartCameraPosition = { ...window.engine.camera.position };
+            }
+
+            if (window.engine.pointerState.justMoved) {
+                if (
+                    buttonStates.some((state) => state.down) &&
+                    this.#dragStartMousePosition &&
+                    this.#dragStartCameraPosition
+                ) {
+                    const screenDelta = {
+                        x: window.engine.pointerState.x - this.#dragStartMousePosition.x,
+                        y: window.engine.pointerState.y - this.#dragStartMousePosition.y,
+                    };
+                    window.engine.setCameraPosition({
+                        x: this.#dragStartCameraPosition.x + screenDelta.x,
+                        y: this.#dragStartCameraPosition.y + screenDelta.y,
+                    });
+                }
+            }
+
+            if (buttonStates.some((state) => state.released) && this.#dragStartMousePosition) {
+                this.#dragStartMousePosition = null;
+                this.#dragStartCameraPosition = null;
+            }
+
+            if (window.engine.pointerState.scrollDelta !== 0) {
+                window.engine.zoomCamera(window.engine.pointerState.scrollDelta);
+            }
         }
     }
 

@@ -49,6 +49,8 @@ export interface EngineOptions {
     scenes?: AvailableScenes;
 
     cameraStart?: CameraState;
+    cameraDrag?: boolean;
+    cameraDragButtons?: MouseButton[];
     startScenes?: string[];
 }
 
@@ -59,6 +61,8 @@ const DEFAULT_ENGINE_OPTIONS: Required<EngineOptions> = {
     scenes: {},
 
     cameraStart: { ...DEFAULT_CAMERA_OPTIONS },
+    cameraDrag: false,
+    cameraDragButtons: [MouseButton.MIDDLE, MouseButton.RIGHT],
     startScenes: [],
 };
 
@@ -151,7 +155,7 @@ export class Engine {
         return { x: this._canvas.width, y: this._canvas.height };
     }
 
-    get options(): Readonly<EngineOptions> {
+    get options(): Readonly<Required<EngineOptions>> {
         return this._options;
     }
 

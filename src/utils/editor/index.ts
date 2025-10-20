@@ -44,6 +44,7 @@ export class Editor extends Engine {
             startScenes: [UIScene.name, GridScene.name],
             minZoom: 0.5,
             maxZoom: 2,
+            cameraDrag: true,
             ...options,
         });
 
