@@ -161,14 +161,22 @@ export class Editor extends Engine {
         entityType: Loophole_ExtendedEntityType,
         edgeAlignment: Loophole_EdgeAlignment | null,
     ): void {
-        const { tileOwnership } = ENTITY_METADATA[entityType];
-        this.#level.entities = this.#level.entities.filter(
-            (e) =>
-                !positionsEqual(position, getLoopholeEntityPosition(e)) ||
-                positionType != getLoopholeEntityPositionType(e) ||
-                ('edgePosition' in e && e.edgePosition.alignment !== edgeAlignment) ||
-                (tileOwnership === 'ONLY_TYPE_IN_TILE' ? e.entityType !== entityType : false),
-        );
+        const { tileOwnership, type } = ENTITY_METADATA[entityType];
+        this.#level.entities = this.#level.entities.filter((e) => {
+            if (!positionsEqual(position, getLoopholeEntityPosition(e))) {
+                return true;
+            }
+
+            if (positionType != getLoopholeEntityPositionType(e)) {
+                return true;
+            }
+
+            if ('edgePosition' in e && e.edgePosition.alignment !== edgeAlignment) {
+                return true;
+            }
+
+            return tileOwnership === 'ONLY_TYPE_IN_TILE' ? e.entityType !== type : false;
+        });
     }
 
     #reloadTile(position: Loophole_Int2, createIfMissing: boolean = true): void {
