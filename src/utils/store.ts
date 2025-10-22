@@ -1,9 +1,12 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { createLevelWithMetadata, type LevelWithMetadata } from './utils';
-import type { Loophole_ExtendedEntityType, Loophole_Rotation } from './editor/externalLevelSchema';
+import type {
+    Loophole_ExtendedEntityType,
+    Loophole_Rotation,
+} from './levelEditor/externalLevelSchema';
 import { useMemo } from 'react';
-import type { E_Tile } from './editor/scenes/grid';
+import type { E_Tile } from './levelEditor/scenes/grid';
 
 interface AppStore {
     levels: Record<string, LevelWithMetadata>;

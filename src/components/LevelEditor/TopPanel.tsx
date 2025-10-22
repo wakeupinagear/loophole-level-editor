@@ -1,5 +1,5 @@
 import { useAppStore, useCurrentLevel } from '../../utils/store';
-import { Input } from './input';
+import { Input } from '../ui/input';
 import Panel from './Panel';
 
 const DEFAULT_LEVEL_NAME = 'Untitled Level';
@@ -15,7 +15,7 @@ export default function TopPanel() {
         <Panel className="flex items-center w-full">
             <Input
                 type="text"
-                className="border-none outline-none !text-xl"
+                className="border-none outline-none !text-xl font-bold"
                 value={name}
                 placeholder={DEFAULT_LEVEL_NAME}
                 onChange={(e) => updateLevel({ ...currentLevel, name: e.target.value })}

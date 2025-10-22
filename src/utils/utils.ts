@@ -18,7 +18,8 @@ import type {
     Loophole_TimeMachine,
     Loophole_Wall,
     Loophole_Wire,
-} from './editor/externalLevelSchema';
+    Loophole_CleansingPool,
+} from './levelEditor/externalLevelSchema';
 import type { Position } from './engine/types';
 
 export const TILE_CENTER_FRACTION = 0.7;
@@ -30,6 +31,7 @@ export type LoopholePositionType = 'CELL' | 'EDGE';
 
 const ENTITY_TYPE_DRAW_ORDER_LIST: Loophole_EntityType[] = [
     'WIRE',
+    'CLEANSING_POOL',
     'BUTTON',
     'MUSHROOM',
     'STAFF',
@@ -49,6 +51,25 @@ export const ENTITY_TYPE_DRAW_ORDER: Record<Loophole_EntityType, number> =
         },
         {} as Record<Loophole_EntityType, number>,
     );
+
+export const getLoopholeEntityExtendedType = (
+    entity: Loophole_Entity,
+): Loophole_ExtendedEntityType => {
+    switch (entity.entityType) {
+        case 'MUSHROOM':
+            switch (entity.mushroomType) {
+                case 'BLUE':
+                    return 'MUSHROOM_BLUE';
+                case 'GREEN':
+                    return 'MUSHROOM_GREEN';
+                case 'RED':
+                    return 'MUSHROOM_RED';
+            }
+            break;
+        default:
+            return entity.entityType as Loophole_ExtendedEntityType;
+    }
+};
 
 export const getLoopholeEntityPositionType = (entity: Loophole_Entity): LoopholePositionType => {
     if ('edgePosition' in entity) {
@@ -310,6 +331,20 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
             entityType: 'MUSHROOM',
             position,
             mushroomType: 'RED',
+        }),
+        tileOwnership: 'ONLY_TYPE_IN_TILE',
+        tileScale: TILE_CENTER_FRACTION,
+    },
+    CLEANSING_POOL: {
+        name: 'Cleansing Pool',
+        description: 'A pool that cleanses the player of all status effects.',
+        src: 'pixel/pool.png',
+        type: 'CLEANSING_POOL',
+        extendedType: 'CLEANSING_POOL',
+        positionType: 'CELL',
+        createEntity: (position): Loophole_CleansingPool => ({
+            entityType: 'CLEANSING_POOL',
+            position,
         }),
         tileOwnership: 'ONLY_TYPE_IN_TILE',
         tileScale: TILE_CENTER_FRACTION,

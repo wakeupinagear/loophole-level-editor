@@ -58,9 +58,11 @@ export abstract class Component implements Renderable {
     queueRenderCommands(_out: RenderCommandStream) {}
 
     setZIndex(zIndex: number): this {
-        this._zIndex = zIndex;
-        if (this._entity) {
-            this._entity.componentsZIndexDirty = true;
+        if (this._zIndex !== zIndex) {
+            this._zIndex = zIndex;
+            if (this._entity) {
+                this._entity.componentsZIndexDirty = true;
+            }
         }
 
         return this;

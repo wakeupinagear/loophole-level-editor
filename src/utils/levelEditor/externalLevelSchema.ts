@@ -60,6 +60,20 @@ export type Loophole_Level = {
     entities: Loophole_Entity[];
 };
 
+export type Loophole_EntityType =
+    | 'TIME_MACHINE'
+    | 'WALL'
+    | 'CURTAIN'
+    | 'ONE_WAY'
+    | 'GLASS'
+    | 'STAFF'
+    | 'SAUCE'
+    | 'MUSHROOM'
+    | 'BUTTON'
+    | 'DOOR'
+    | 'WIRE'
+    | 'CLEANSING_POOL';
+
 export type Loophole_Entity =
     | Loophole_TimeMachine
     | Loophole_Wall
@@ -71,8 +85,8 @@ export type Loophole_Entity =
     | Loophole_Mushroom
     | Loophole_Button
     | Loophole_Door
-    | Loophole_Wire;
-export type Loophole_EntityType = Loophole_Entity['entityType'];
+    | Loophole_Wire
+    | Loophole_CleansingPool;
 
 export type Loophole_ExtendedEntityType =
     | Exclude<Loophole_EntityType, 'MUSHROOM'>
@@ -80,82 +94,86 @@ export type Loophole_ExtendedEntityType =
     | 'MUSHROOM_GREEN'
     | 'MUSHROOM_RED';
 
+type Loophole_EntityBase = {
+    entityType: Loophole_EntityType;
+};
+
 // A time machine, including the walls and doors around it.
-export type Loophole_TimeMachine = {
+export interface Loophole_TimeMachine extends Loophole_EntityBase {
     entityType: 'TIME_MACHINE';
     position: Loophole_Int2;
     // The rotation of the time machine. Aligns with the direction the player will move when going through.
     rotation: Loophole_Rotation;
-};
+}
 
 // A barrier that blocks vision and movement.
-export type Loophole_Wall = {
+export interface Loophole_Wall extends Loophole_EntityBase {
     entityType: 'WALL';
     edgePosition: Loophole_EdgePosition;
-};
+}
 
 // A barrier that blocks vision, but doesn't block movement.
-export type Loophole_Curtain = {
+export interface Loophole_Curtain extends Loophole_EntityBase {
     entityType: 'CURTAIN';
     edgePosition: Loophole_EdgePosition;
-};
+}
 
 // A barrier that blocks vision, but only blocks movement in one direction.
-export type Loophole_OneWay = {
+export interface Loophole_OneWay extends Loophole_EntityBase {
     entityType: 'ONE_WAY';
     edgePosition: Loophole_EdgePosition;
     // Determines which direction the OneWay faces.
     // If true, the player can move away from edgePosition.cell.
     // If false, the player can move towards edgePosition.cell.
     flipDirection: boolean;
-};
+}
 
 // A barrier that blocks movement, but doesn't block vision.
-export type Loophole_Glass = {
+export interface Loophole_Glass extends Loophole_EntityBase {
     entityType: 'GLASS';
     edgePosition: Loophole_EdgePosition;
-};
+}
 
 // An item that the player can move to hold down buttons.
-export type Loophole_Staff = {
+export interface Loophole_Staff extends Loophole_EntityBase {
     entityType: 'STAFF';
     position: Loophole_Int2;
-};
+}
 
 // A square in which time doesn't advance.
-export type Loophole_Sauce = {
+export interface Loophole_Sauce extends Loophole_EntityBase {
     entityType: 'SAUCE';
     position: Loophole_Int2;
-};
+}
 
 // An item that gives the player a status effect.
-export type Loophole_Mushroom = {
+export interface Loophole_Mushroom extends Loophole_EntityBase {
     entityType: 'MUSHROOM';
     position: Loophole_Int2;
     mushroomType: 'BLUE' | 'GREEN' | 'RED';
-};
+}
 
 // A square that removes status effects from the player.
-export type Loophole_CleansingPool = {
+export interface Loophole_CleansingPool extends Loophole_EntityBase {
     entityType: 'CLEANSING_POOL';
     position: Loophole_Int2;
-};
+}
 
 // An entity that activates a channel when overlapping with a Player or a Staff.
-export type Loophole_Button = {
+export interface Loophole_Button extends Loophole_EntityBase {
     entityType: 'BUTTON';
     position: Loophole_Int2;
     // When this Button is activated, Doors and Wires that share this channel will become activated.
     channel: Loophole_Int;
-};
+}
 
 // A barrier the blocks the movement unless a channel is activated.
-export type Loophole_Door = {
+export interface Loophole_Door extends Loophole_EntityBase {
     entityType: 'DOOR';
     edgePosition: Loophole_EdgePosition;
     // The door opens when this channel is activated.
     channel: Loophole_Int;
-};
+}
 
 // A decoration that can indicate connections between buttons and doors.
 //

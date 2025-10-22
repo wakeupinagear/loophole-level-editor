@@ -11,23 +11,23 @@ import { C_Image } from '@/utils/engine/components/Image';
 import { getAppStore } from '@/utils/store';
 import type { Loophole_EdgeAlignment } from '../externalLevelSchema';
 import { PointerButton } from '@/utils/engine/systems/pointer';
-import type { Editor } from '..';
 import type { Position } from '@/utils/engine/types';
 import { lerpPosition } from '@/utils/engine/utils';
+import type { LevelEditor } from '..';
 
 const TARGET_OPACITY = 0.5;
 const POSITION_SPEED = 25;
 const ROTATION_SPEED = 1000;
 
 class E_Cursor extends Entity {
-    #editor: Editor;
+    #editor: LevelEditor;
     #image: C_Image;
 
     #targetPosition: Position | null = null;
     #targetRotation: number | null = null;
     #active: boolean = false;
 
-    constructor(editor: Editor) {
+    constructor(editor: LevelEditor) {
         const comp = new C_Image('cursor', ENTITY_METADATA['MUSHROOM_BLUE'].name, {
             imageSmoothingEnabled: false,
             globalAlpha: 0,
@@ -192,7 +192,7 @@ class E_Cursor extends Entity {
 }
 
 export class UIScene extends Scene {
-    override create(editor: Editor) {
+    override create(editor: LevelEditor) {
         this.rootEntity?.setZIndex(100);
 
         this.addEntities(new E_Cursor(editor));

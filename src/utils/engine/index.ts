@@ -44,20 +44,19 @@ interface CameraState {
     zoom?: number;
     rotation?: number;
     position?: Position;
-    clearColor?: string;
 }
 
 const DEFAULT_CAMERA_OPTIONS: Required<CameraState> = {
     zoom: 1,
     rotation: 0,
     position: { x: 0, y: 0 },
-    clearColor: 'black',
 };
 
 export interface EngineOptions {
     zoomSpeed?: number;
     minZoom?: number;
     maxZoom?: number;
+    clearColor?: string;
 
     scenes?: AvailableScenes;
     startScenes?: string[];
@@ -73,6 +72,7 @@ const DEFAULT_ENGINE_OPTIONS: Required<EngineOptions> = {
     zoomSpeed: 0.001,
     minZoom: 0.1,
     maxZoom: 10,
+    clearColor: 'black',
 
     scenes: {},
     startScenes: [],
@@ -353,12 +353,12 @@ export class Engine {
             return false;
         }
 
+        this.#updateCameraPosition();
+
         let updated = this._update(deltaTime);
         updated = this._rootEntity.update(deltaTime) || updated;
 
-        this._rootEntity.setScale({ x: this._camera.zoom, y: this._camera.zoom });
-        this._rootEntity.setRotation(this._camera.rotation);
-        this._rootEntity.setPosition(this._camera.position);
+        this.#updateCameraPosition();
 
         this.#updateTime = performance.now() - startTime;
         return updated;
@@ -386,7 +386,7 @@ export class Engine {
 
         const { x: canvasWidth, y: canvasHeight } = this.canvasSize;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.fillStyle = this._camera.clearColor;
+        ctx.fillStyle = this.options.clearColor;
         ctx.fillRect(0, 0, canvasWidth, canvasHeight);
         ctx.translate(canvasWidth / 2, canvasHeight / 2);
 
@@ -419,6 +419,12 @@ export class Engine {
         }
 
         window.requestAnimationFrame(this.#engineLoop.bind(this));
+    }
+
+    #updateCameraPosition() {
+        this._rootEntity.setScale({ x: this._camera.zoom, y: this._camera.zoom });
+        this._rootEntity.setRotation(this._camera.rotation);
+        this._rootEntity.setPosition(this._camera.position);
     }
 
     #handleBrowserEvent(event: BrowserEvent, data: BrowserEventMap[BrowserEvent]) {

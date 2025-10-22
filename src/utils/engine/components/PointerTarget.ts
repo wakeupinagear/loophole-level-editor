@@ -13,7 +13,7 @@ export class C_PointerTarget extends Component {
     #isPointerOver: boolean = false;
 
     constructor({ onPointerEnter, onPointerLeave }: PointerTargetOptions = {}) {
-        super('PointerTarget');
+        super(C_PointerTarget.name);
 
         this.#onPointerEnter = onPointerEnter;
         this.#onPointerLeave = onPointerLeave;
