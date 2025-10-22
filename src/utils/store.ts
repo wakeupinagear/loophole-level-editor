@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { createLevelWithMetadata, type LevelWithMetadata } from './utils';
-import type { Loophole_ExtendedEntityType } from './editor/externalLevelSchema';
+import type { Loophole_ExtendedEntityType, Loophole_Rotation } from './editor/externalLevelSchema';
 import { useMemo } from 'react';
 import type { E_Tile } from './editor/scenes/grid';
 
@@ -12,10 +12,14 @@ interface AppStore {
     setActiveLevelID: (levelID: string) => void;
     removeLevel: (levelID: string) => void;
     updateLevel: (level: Partial<LevelWithMetadata>) => void;
-    selectedEntityType: Loophole_ExtendedEntityType | null;
-    setSelectedEntityType: (entityType: Loophole_ExtendedEntityType | null) => void;
     highlightedEngineTile: E_Tile | null;
     setHighlightedEngineTile: (tile: E_Tile | null) => void;
+    selectedEntityType: Loophole_ExtendedEntityType | null;
+    setSelectedEntityType: (entityType: Loophole_ExtendedEntityType | null) => void;
+    selectedEntityRotation: Loophole_Rotation;
+    setSelectedEntityRotation: (rotation: Loophole_Rotation) => void;
+    selectedEntityFlipDirection: boolean;
+    setSelectedEntityFlipDirection: (direction: boolean) => void;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -46,10 +50,15 @@ export const useAppStore = create<AppStore>()(
                             ]),
                         ),
                     })),
-                selectedEntityType: null,
-                setSelectedEntityType: (entityType) => set({ selectedEntityType: entityType }),
                 highlightedEngineTile: null,
                 setHighlightedEngineTile: (tile) => set({ highlightedEngineTile: tile }),
+                selectedEntityType: null,
+                setSelectedEntityType: (entityType) => set({ selectedEntityType: entityType }),
+                selectedEntityRotation: 'RIGHT',
+                setSelectedEntityRotation: (rotation) => set({ selectedEntityRotation: rotation }),
+                selectedEntityFlipDirection: false,
+                setSelectedEntityFlipDirection: (direction) =>
+                    set({ selectedEntityFlipDirection: direction }),
             };
         },
         {
@@ -59,6 +68,8 @@ export const useAppStore = create<AppStore>()(
                 levels: state.levels,
                 activeLevelID: state.activeLevelID,
                 selectedEntityType: state.selectedEntityType,
+                //selectedEntityRotation: state.selectedEntityRotation,
+                //selectedEntityFlipDirection: state.selectedEntityFlipDirection,
             }),
             version: 1,
             migrate: () => {},

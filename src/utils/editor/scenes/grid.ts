@@ -4,6 +4,7 @@ import { Scene } from '../../engine/systems/scene';
 import {
     ENTITY_METADATA,
     ENTITY_TYPE_DRAW_ORDER,
+    loopholeRotationToDegrees,
     TILE_CENTER_FRACTION,
     TILE_SIZE,
 } from '../../utils';
@@ -27,9 +28,9 @@ class E_Grid extends Entity {
             'cursor',
             'RECT',
             {
-                strokeStyle: 'lightgrey',
-                fillStyle: 'darkgrey',
-                lineWidth: 2,
+                strokeStyle: 'white',
+                fillStyle: 'black',
+                lineWidth: 24,
             },
             { x: 1, y: 1 },
         );
@@ -162,11 +163,16 @@ export abstract class E_Tile extends Entity {
     }
 }
 
+interface CellImages {
+    entity: Entity;
+    image: C_Image;
+}
+
 export class E_Cell extends E_Tile {
     #pointerTarget: C_PointerTarget;
     #cell: Entity;
 
-    #images: C_Image[] = [];
+    #cellImages: CellImages[] = [];
 
     constructor(position: Loophole_Int2) {
         super('cell', position);
@@ -192,19 +198,22 @@ export class E_Cell extends E_Tile {
         if (this._entitiesDirty) {
             this._entitiesDirty = false;
 
-            while (this.#images.length < this._entities.length) {
+            while (this.#cellImages.length < this._entities.length) {
+                const imgEntity = new Entity('entityImage');
+                this.#cell.addChildren(imgEntity);
                 const img = new C_Image('entityImage', '', {
                     imageSmoothingEnabled: false,
                 });
-                this.#cell.addComponents(img);
-                this.#images.push(img);
+                imgEntity.addComponents(img);
+                this.#cellImages.push({
+                    entity: imgEntity,
+                    image: img,
+                });
             }
 
-            for (let i = 0; i < this.#images.length; i++) {
+            for (let i = 0; i < this.#cellImages.length; i++) {
+                const cell = this.#cellImages[i];
                 if (i < this._entities.length) {
-                    const img = this.#images[i];
-                    img.setEnabled(true);
-
                     const entity = this._entities[i];
 
                     if ('mushroomType' in entity) {
@@ -216,18 +225,29 @@ export class E_Cell extends E_Tile {
                                       ? 'MUSHROOM_GREEN'
                                       : 'MUSHROOM_RED'
                             ];
-                        img.imageName = name;
+                        cell.image.imageName = name;
 
                         const { tileScale } = ENTITY_METADATA['MUSHROOM_BLUE'];
-                        img.setScale({ x: tileScale, y: tileScale });
+                        cell.image.setScale({ x: tileScale, y: tileScale });
                     } else {
                         const { name, tileScale: tileScaleOverride } =
                             ENTITY_METADATA[entity.entityType];
-                        img.imageName = name;
-                        img.setScale({ x: tileScaleOverride, y: tileScaleOverride });
+                        cell.image.imageName = name;
+                        cell.image.setScale({ x: tileScaleOverride, y: tileScaleOverride });
                     }
+
+                    cell.entity.setEnabled(true);
+                    cell.entity.setRotation(
+                        'rotation' in entity
+                            ? loopholeRotationToDegrees(entity.rotation)
+                            : 'flipDirection' in entity
+                              ? entity.flipDirection
+                                  ? 180
+                                  : 0
+                              : 0,
+                    );
                 } else {
-                    this.#images[i].setEnabled(false);
+                    cell.entity.setEnabled(false);
                 }
             }
 
@@ -271,15 +291,15 @@ export class E_Edge extends E_Tile {
         if (this._entitiesDirty) {
             this._entitiesDirty = false;
 
-            this.#rightEdge.image.enabled = false;
-            this.#topEdge.image.enabled = false;
+            this.#rightEdge.image.setEnabled(false);
+            this.#topEdge.image.setEnabled(false);
             for (const entity of this._entities) {
                 if ('edgePosition' in entity) {
                     const edge =
                         entity.edgePosition.alignment === 'RIGHT' ? this.#rightEdge : this.#topEdge;
                     const { name, tileScale } = ENTITY_METADATA[entity.entityType];
                     edge.image.imageName = name;
-                    edge.image.enabled = true;
+                    edge.image.setEnabled(true);
 
                     let rotation = entity.edgePosition.alignment === 'RIGHT' ? 180 : 90;
                     if (entity.entityType === 'ONE_WAY') {

@@ -1,31 +1,27 @@
 import type { Engine } from '..';
 import { C_PointerTarget } from '../components/PointerTarget';
-import { type Position } from '../types';
+import { type ButtonState, type Position } from '../types';
 
 const MAX_DISTANCE_DURING_CLICK = 10;
 
-export interface MouseButtonState {
-    down: boolean;
-    pressed: boolean;
-    released: boolean;
+export interface PointerButtonState extends ButtonState {
     clicked: boolean;
 }
 
-export const MouseButton = {
+export const PointerButton = {
     LEFT: 0,
     MIDDLE: 1,
     RIGHT: 2,
 } as const;
-export type MouseButton = (typeof MouseButton)[keyof typeof MouseButton];
+export type PointerButton = (typeof PointerButton)[keyof typeof PointerButton];
 
-export interface PointerState extends Position, Record<MouseButton, MouseButtonState> {
+export interface PointerState extends Position, Record<PointerButton, PointerButtonState> {
     scrollDelta: number;
     justMoved: boolean;
     onScreen: boolean;
     justMovedOnScreen: boolean;
     justMovedOffScreen: boolean;
     worldPosition: Position;
-    clickTime: number;
     clickStartPosition: Position | null;
     clickEndPosition: Position | null;
 }
@@ -39,15 +35,32 @@ export class PointerSystem {
         x: 0,
         y: 0,
         worldPosition: { x: 0, y: 0 },
-        clickTime: 0,
         clickStartPosition: null,
         clickEndPosition: null,
         onScreen: false,
         justMovedOnScreen: false,
         justMovedOffScreen: false,
-        [MouseButton.LEFT]: { down: false, pressed: false, released: false, clicked: false },
-        [MouseButton.MIDDLE]: { down: false, pressed: false, released: false, clicked: false },
-        [MouseButton.RIGHT]: { down: false, pressed: false, released: false, clicked: false },
+        [PointerButton.LEFT]: {
+            down: false,
+            pressed: false,
+            released: false,
+            clicked: false,
+            downTime: 0,
+        },
+        [PointerButton.MIDDLE]: {
+            down: false,
+            pressed: false,
+            released: false,
+            clicked: false,
+            downTime: 0,
+        },
+        [PointerButton.RIGHT]: {
+            down: false,
+            pressed: false,
+            released: false,
+            clicked: false,
+            downTime: 0,
+        },
     };
     #lastPointerState: PointerState = { ...this.#pointerState };
 
@@ -99,17 +112,16 @@ export class PointerSystem {
         this.#pointerState.onScreen = onScreen;
     }
 
-    getPointerButton(button: MouseButton): MouseButtonState {
+    getPointerButton(button: PointerButton): PointerButtonState {
         return this.#pointerState[button];
     }
 
-    pointerButtonStateChange(button: MouseButton, down: boolean) {
-        this.#pointerState[button] = { ...this.#pointerState[button], down };
+    pointerButtonStateChange(button: PointerButton, down: boolean) {
+        this.#pointerState[button] = { ...this.#pointerState[button], down, downTime: 0 };
         const position = { x: this.#pointerState.x, y: this.#pointerState.y };
         if (down) {
             this.#pointerState.clickStartPosition = position;
             this.#pointerState.clickEndPosition = null;
-            this.#pointerState.clickTime = 0;
         } else {
             this.#pointerState.clickEndPosition = position;
         }
@@ -120,7 +132,7 @@ export class PointerSystem {
             this.#pointerState.x !== this.#lastPointerState.x ||
             this.#pointerState.y !== this.#lastPointerState.y;
         this.#pointerState.worldPosition = this.#engine.screenToWorld(this.#pointerState);
-        Object.values(MouseButton).forEach((button: MouseButton) => {
+        Object.values(PointerButton).forEach((button: PointerButton) => {
             this.#pointerState[button].pressed =
                 this.#pointerState[button].down && !this.#lastPointerState[button].down;
             this.#pointerState[button].released =
@@ -140,15 +152,15 @@ export class PointerSystem {
                     this.#pointerState[button].clicked = true;
                 }
             } else if (this.#pointerState[button].down) {
-                this.#pointerState.clickTime += deltaTime;
+                this.#pointerState[button].downTime += deltaTime;
             }
         });
 
         this.#lastPointerState = {
             ...this.#pointerState,
-            [MouseButton.LEFT]: { ...this.#pointerState[MouseButton.LEFT] },
-            [MouseButton.MIDDLE]: { ...this.#pointerState[MouseButton.MIDDLE] },
-            [MouseButton.RIGHT]: { ...this.#pointerState[MouseButton.RIGHT] },
+            [PointerButton.LEFT]: { ...this.#pointerState[PointerButton.LEFT] },
+            [PointerButton.MIDDLE]: { ...this.#pointerState[PointerButton.MIDDLE] },
+            [PointerButton.RIGHT]: { ...this.#pointerState[PointerButton.RIGHT] },
         };
 
         if (this.#pointerState.onScreen) {

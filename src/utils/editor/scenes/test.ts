@@ -1,6 +1,6 @@
 import { C_Shape } from '../../engine/components/Shape';
 import { Entity } from '../../engine/entities';
-import { MouseButton } from '../../engine/systems/pointer';
+import { PointerButton } from '../../engine/systems/pointer';
 import { Scene } from '../../engine/systems/scene';
 import { type Position } from '../../engine/types';
 
@@ -94,7 +94,7 @@ export class TestScene extends Scene {
     override update(deltaTime: number): boolean {
         this.#rotatingBox?.rotate(90 * deltaTime);
 
-        if (window.engine.pointerState[MouseButton.LEFT].pressed) {
+        if (window.engine.pointerState[PointerButton.LEFT].pressed) {
             window.engine.destroyScene(this._id);
         }
 

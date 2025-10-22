@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import type { Engine } from '../../utils/engine';
 import type { Position } from '../../utils/engine/types';
-import type { MouseButton } from '../../utils/engine/systems/pointer';
+import type { PointerButton } from '../../utils/engine/systems/pointer';
 
 const calculateCanvasSize = (width: number, height: number, aspectRatio?: number): Position => {
     if (aspectRatio) {
@@ -56,11 +56,11 @@ export function EngineCanvas({ engineRef, aspectRatio, ...rest }: EngineCanvasPr
             localCanvas.addEventListener('wheel', onMouseWheel);
             const onMouseDown = (event: MouseEvent) =>
                 engineRef.current?.onMouseDown('mousedown', {
-                    button: event.button as MouseButton,
+                    button: event.button as PointerButton,
                 });
             localCanvas.addEventListener('mousedown', onMouseDown);
             const onMouseUp = (event: MouseEvent) =>
-                engineRef.current?.onMouseUp('mouseup', { button: event.button as MouseButton });
+                engineRef.current?.onMouseUp('mouseup', { button: event.button as PointerButton });
             localCanvas.addEventListener('mouseup', onMouseUp);
             const onMouseEnter = (event: MouseEvent) =>
                 engineRef.current?.onMouseEnter('mouseenter', {
@@ -82,6 +82,14 @@ export function EngineCanvas({ engineRef, aspectRatio, ...rest }: EngineCanvasPr
                     to: event.target,
                 });
             localCanvas.addEventListener('mouseover', onMouseOver);
+
+            const onKeyDown = (event: KeyboardEvent) =>
+                engineRef.current?.onKeyDown('keydown', { key: event.key });
+            window.addEventListener('keydown', onKeyDown);
+            const onKeyUp = (event: KeyboardEvent) =>
+                engineRef.current?.onKeyUp('keyup', { key: event.key });
+            window.addEventListener('keyup', onKeyUp);
+
             localCanvas.addEventListener('contextmenu', (event) => event.preventDefault());
 
             return () => {

@@ -25,7 +25,7 @@ export type Loophole_EdgePosition = {
 //    - "UP"    = 90 deg counter-clockwise
 //    - "LEFT"  = 180 deg counter-clockwise
 //    - "DOWN"  = 270 deg counter-clockwise
-export type Loophole_Direction = 'RIGHT' | 'UP' | 'LEFT' | 'DOWN';
+export type Loophole_Rotation = 'RIGHT' | 'UP' | 'LEFT' | 'DOWN';
 
 // The color palette for the walls and floors.
 //    0: orange floor & blue walls
@@ -85,7 +85,7 @@ export type Loophole_TimeMachine = {
     entityType: 'TIME_MACHINE';
     position: Loophole_Int2;
     // The rotation of the time machine. Aligns with the direction the player will move when going through.
-    rotation: Loophole_Direction;
+    rotation: Loophole_Rotation;
 };
 
 // A barrier that blocks vision and movement.
@@ -168,7 +168,7 @@ export type Loophole_Door = {
 export type Loophole_Wire = {
     entityType: 'WIRE';
     position: Loophole_Int2;
-    rotation: Loophole_Direction;
+    rotation: Loophole_Rotation;
     sprite: 'STRAIGHT' | 'CORNER';
     // The wire lights up when this channel is activated.
     channel: Loophole_Int;

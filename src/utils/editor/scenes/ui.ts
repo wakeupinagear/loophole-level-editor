@@ -1,10 +1,16 @@
-import { ENTITY_METADATA, loopholePositionToEnginePosition, TILE_SIZE } from '@/utils/utils';
+import {
+    degreesToLoopholeRotation,
+    ENTITY_METADATA,
+    loopholePositionToEnginePosition,
+    loopholeRotationToDegrees,
+    TILE_SIZE,
+} from '@/utils/utils';
 import { Entity } from '../../engine/entities';
 import { Scene } from '../../engine/systems/scene';
 import { C_Image } from '@/utils/engine/components/Image';
 import { getAppStore } from '@/utils/store';
 import type { Loophole_EdgeAlignment } from '../externalLevelSchema';
-import { MouseButton } from '@/utils/engine/systems/pointer';
+import { PointerButton } from '@/utils/engine/systems/pointer';
 import type { Editor } from '..';
 import type { Position } from '@/utils/engine/types';
 import { lerpPosition } from '@/utils/engine/utils';
@@ -37,12 +43,20 @@ class E_Cursor extends Entity {
     override update(deltaTime: number): boolean {
         let updated = super.update(deltaTime);
 
-        const { selectedEntityType } = getAppStore();
+        const {
+            selectedEntityType,
+            selectedEntityRotation,
+            setSelectedEntityRotation,
+            selectedEntityFlipDirection,
+            setSelectedEntityFlipDirection,
+        } = getAppStore();
         if (window.engine.pointerState.onScreen && selectedEntityType) {
             const {
                 positionType,
                 name,
                 tileScale: tileScaleOverride,
+                hasRotation,
+                hasFlipDirection,
             } = ENTITY_METADATA[selectedEntityType];
             this.#image.imageName = name;
 
@@ -68,14 +82,14 @@ class E_Cursor extends Entity {
                         y: cellY,
                     };
                     edgeAlignment = 'RIGHT';
-                    this.#targetRotation = 0;
+                    this.#targetRotation = loopholeRotationToDegrees('RIGHT');
                 } else {
                     cursorPosition = {
                         x: cellX,
                         y: localY > 0 ? cellY + 0.5 : cellY - 0.5,
                     };
                     edgeAlignment = 'TOP';
-                    this.#targetRotation = 270;
+                    this.#targetRotation = loopholeRotationToDegrees('UP');
                 }
             }
 
@@ -90,15 +104,43 @@ class E_Cursor extends Entity {
                 y: cursorPosition.y * TILE_SIZE,
             };
 
+            let _selectedEntityRotation = selectedEntityRotation;
+            let _selectedEntityFlipDirection = selectedEntityFlipDirection;
+            if (this.#editor.getKey('r').pressed) {
+                if (hasRotation) {
+                    _selectedEntityRotation = degreesToLoopholeRotation(
+                        loopholeRotationToDegrees(selectedEntityRotation) + 90,
+                    );
+                    setSelectedEntityRotation(_selectedEntityRotation);
+                } else if (hasFlipDirection) {
+                    _selectedEntityFlipDirection = !selectedEntityFlipDirection;
+                    setSelectedEntityFlipDirection(_selectedEntityFlipDirection);
+                }
+            }
+
+            if (hasRotation) {
+                this.#targetRotation =
+                    (this.#targetRotation + loopholeRotationToDegrees(_selectedEntityRotation)) %
+                    360;
+            } else if (hasFlipDirection && _selectedEntityFlipDirection) {
+                this.#targetRotation += 180;
+            }
+
             this.setScale({ x: TILE_SIZE * tileScaleOverride, y: TILE_SIZE * tileScaleOverride });
             if (!this.#active) {
                 this.setPosition(this.#targetPosition);
                 this.setRotation(this.#targetRotation ?? 0);
             }
 
-            if (this.#editor.getPointerButton(MouseButton.LEFT).clicked) {
-                this.#editor.placeTile(tilePosition, selectedEntityType, edgeAlignment);
-            } else if (this.#editor.getPointerButton(MouseButton.RIGHT).clicked) {
+            if (this.#editor.getPointerButton(PointerButton.LEFT).clicked) {
+                this.#editor.placeTile(
+                    tilePosition,
+                    selectedEntityType,
+                    edgeAlignment,
+                    selectedEntityRotation,
+                    selectedEntityFlipDirection,
+                );
+            } else if (this.#editor.getPointerButton(PointerButton.RIGHT).clicked) {
                 this.#editor.removeTile(
                     tilePosition,
                     positionType,

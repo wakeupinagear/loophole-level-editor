@@ -43,10 +43,6 @@ export class Entity implements Renderable {
         return this._enabled;
     }
 
-    set enabled(enabled: boolean) {
-        this._enabled = enabled;
-    }
-
     get transform(): C_Transform {
         return this._transform;
     }
@@ -138,6 +134,12 @@ export class Entity implements Renderable {
     removeChild(entity: Entity): void {
         this._children = this._children.filter((e) => e !== entity);
         entity.parent = null;
+    }
+
+    setEnabled(enabled: boolean): this {
+        this._enabled = enabled;
+
+        return this;
     }
 
     setPosition(newPosition: Position): this {

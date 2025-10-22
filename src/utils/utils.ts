@@ -2,7 +2,7 @@ import { v4 } from 'uuid';
 import type {
     Loophole_Button,
     Loophole_Curtain,
-    Loophole_Direction,
+    Loophole_Rotation,
     Loophole_Door,
     Loophole_EdgeAlignment,
     Loophole_Entity,
@@ -95,7 +95,6 @@ export type LevelWithMetadata = {
 export const getTimestamp = (): number => Date.now();
 
 const DEFAULT_EDGE_ALIGNMENT: Loophole_EdgeAlignment = 'RIGHT';
-const DEFAULT_EDGE_ROTATION: Loophole_Direction = 'RIGHT';
 const DEFAULT_WALL_SCALE = 0.85;
 
 type TileOwnership = 'ONLY_ENTITY_IN_TILE' | 'ONLY_TYPE_IN_TILE';
@@ -110,9 +109,13 @@ interface EntityMetadata {
     createEntity: (
         position: Loophole_Int2,
         edgeAlignment: Loophole_EdgeAlignment | null,
+        rotation: Loophole_Rotation,
+        flipDirection: boolean,
     ) => Loophole_Entity;
     tileOwnership: TileOwnership;
     tileScale: number;
+    hasRotation?: boolean;
+    hasFlipDirection?: boolean;
 }
 
 export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata> = {
@@ -123,13 +126,14 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         type: 'TIME_MACHINE',
         extendedType: 'TIME_MACHINE',
         positionType: 'CELL',
-        createEntity: (position): Loophole_TimeMachine => ({
+        createEntity: (position, _, rotation): Loophole_TimeMachine => ({
             entityType: 'TIME_MACHINE',
             position,
-            rotation: DEFAULT_EDGE_ROTATION,
+            rotation,
         }),
         tileOwnership: 'ONLY_ENTITY_IN_TILE',
         tileScale: TILE_CENTER_FRACTION,
+        hasRotation: true,
     },
     WALL: {
         name: 'Wall',
@@ -166,13 +170,14 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         type: 'ONE_WAY',
         extendedType: 'ONE_WAY',
         positionType: 'EDGE',
-        createEntity: (position, edgeAlignment): Loophole_OneWay => ({
+        createEntity: (position, edgeAlignment, _, flipDirection): Loophole_OneWay => ({
             entityType: 'ONE_WAY',
             edgePosition: { cell: position, alignment: edgeAlignment || DEFAULT_EDGE_ALIGNMENT },
-            flipDirection: false,
+            flipDirection,
         }),
         tileOwnership: 'ONLY_ENTITY_IN_TILE',
         tileScale: DEFAULT_WALL_SCALE,
+        hasFlipDirection: true,
     },
     GLASS: {
         name: 'Glass',
@@ -253,15 +258,16 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         type: 'WIRE',
         extendedType: 'WIRE',
         positionType: 'CELL',
-        createEntity: (position): Loophole_Wire => ({
+        createEntity: (position, _, rotation): Loophole_Wire => ({
             entityType: 'WIRE',
             position,
             sprite: 'STRAIGHT',
             channel: 0,
-            rotation: DEFAULT_EDGE_ROTATION,
+            rotation,
         }),
         tileOwnership: 'ONLY_TYPE_IN_TILE',
         tileScale: 1,
+        hasRotation: true,
     },
     MUSHROOM_BLUE: {
         name: 'Invisibility Pickup',
@@ -327,3 +333,23 @@ export const createLevelWithMetadata = (name: string): LevelWithMetadata => ({
         version: 0,
     },
 });
+
+export const loopholeRotationToDegrees = (rotation: Loophole_Rotation): number => {
+    switch (rotation) {
+        case 'UP':
+            return 90;
+        case 'LEFT':
+            return 180;
+        case 'DOWN':
+            return 270;
+        case 'RIGHT':
+        default:
+            return 0;
+    }
+};
+
+const LOOPHOLE_ROTATION_LIST: Loophole_Rotation[] = ['RIGHT', 'UP', 'LEFT', 'DOWN'];
+
+export const degreesToLoopholeRotation = (rotation: number): Loophole_Rotation => {
+    return LOOPHOLE_ROTATION_LIST[Math.round((rotation % 360) / 90)];
+};

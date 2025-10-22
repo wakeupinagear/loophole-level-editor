@@ -1,0 +1,62 @@
+import type { ButtonState } from '../types';
+
+export interface KeyboardKeyState extends ButtonState {
+    numHeldPresses: number;
+}
+
+interface KeyState {
+    currState: KeyboardKeyState;
+    prevState: KeyboardKeyState;
+}
+
+export class KeyboardSystem {
+    #keyStates: Record<string, KeyState> = {};
+
+    update(deltaTime: number): void {
+        for (const key in this.#keyStates) {
+            const keyState = this.#keyStates[key];
+            keyState.currState.pressed = !keyState.prevState.down && keyState.currState.down;
+            keyState.currState.released = keyState.prevState.down && !keyState.currState.down;
+            if (keyState.currState.pressed) {
+                keyState.currState.numHeldPresses++;
+            }
+
+            if (keyState.currState.down) {
+                keyState.currState.downTime += deltaTime;
+            } else {
+                keyState.currState.downTime = 0;
+                keyState.currState.numHeldPresses = 0;
+            }
+
+            keyState.prevState = { ...keyState.currState };
+        }
+    }
+
+    keyStateChange(key: string, isDown: boolean): void {
+        this.#setIfNonExistent(key);
+
+        this.#keyStates[key].currState.down = isDown;
+    }
+
+    getKey(key: string): KeyboardKeyState {
+        this.#setIfNonExistent(key);
+
+        return this.#keyStates[key].currState;
+    }
+
+    #setIfNonExistent(key: string) {
+        if (!(key in this.#keyStates)) {
+            const state: KeyboardKeyState = {
+                down: false,
+                pressed: false,
+                released: false,
+                downTime: 0,
+                numHeldPresses: 0,
+            };
+            this.#keyStates[key] = {
+                currState: { ...state },
+                prevState: state,
+            };
+        }
+    }
+}

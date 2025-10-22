@@ -6,6 +6,7 @@ import type {
     Loophole_ExtendedEntityType,
     Loophole_Int2,
     Loophole_Level,
+    Loophole_Rotation,
 } from './externalLevelSchema';
 import { E_Cell, E_Edge, GridScene } from './scenes/grid';
 import { TestScene } from './scenes/test';
@@ -126,9 +127,11 @@ export class Editor extends Engine {
         position: Loophole_Int2,
         entityType: Loophole_ExtendedEntityType,
         edgeAlignment: Loophole_EdgeAlignment | null,
+        rotation: Loophole_Rotation,
+        flipDirection: boolean,
     ) {
         const { createEntity } = ENTITY_METADATA[entityType];
-        const entity = createEntity(position, edgeAlignment);
+        const entity = createEntity(position, edgeAlignment, rotation, flipDirection);
         const entityPosition = getLoopholeEntityPosition(entity);
         const positionType = getLoopholeEntityPositionType(entity);
         this.#removeOverlappingEntities(entityPosition, positionType, entityType, edgeAlignment);

@@ -33,10 +33,6 @@ export abstract class Component implements Renderable {
         return this._zIndex;
     }
 
-    set enabled(enabled: boolean) {
-        this._enabled = enabled;
-    }
-
     get typeString(): string {
         return this.constructor.name;
     }
@@ -72,6 +68,7 @@ export abstract class Component implements Renderable {
 
     setEnabled(enabled: boolean): this {
         this._enabled = enabled;
+
         return this;
     }
 }

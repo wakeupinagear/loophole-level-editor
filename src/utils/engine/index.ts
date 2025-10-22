@@ -4,12 +4,13 @@ import { type Position } from './types';
 import type { AvailableScenes, Scene, SceneIdentifier } from './systems/scene';
 import { SceneSystem } from './systems/scene';
 import {
-    MouseButton,
+    PointerButton,
     PointerSystem,
-    type MouseButtonState,
+    type PointerButtonState,
     type PointerState,
 } from './systems/pointer';
 import { ImageSystem, type LoadedImage } from './systems/image';
+import { KeyboardSystem, type KeyboardKeyState } from './systems/keyboard';
 
 type BrowserEvent =
     | 'mousemove'
@@ -19,17 +20,22 @@ type BrowserEvent =
     | 'mouseenter'
     | 'mouseleave'
     | 'mouseover'
-    | 'mouseout';
+    | 'mouseout'
+    | 'keydown'
+    | 'keyup';
 
 interface BrowserEventMap {
     mousemove: { x: number; y: number };
     mousewheel: { delta: number };
-    mousedown: { button: MouseButton };
-    mouseup: { button: MouseButton };
+    mousedown: { button: PointerButton };
+    mouseup: { button: PointerButton };
     mouseenter: { target: EventTarget | null; x: number; y: number };
     mouseleave: { target: EventTarget | null; x: number; y: number };
     mouseover: { from: EventTarget | null; to: EventTarget | null };
     mouseout: { from: EventTarget | null; to: EventTarget | null };
+
+    keydown: { key: string };
+    keyup: { key: string };
 }
 
 type BrowserEventHandler<T extends BrowserEvent> = (event: T, data: BrowserEventMap[T]) => void;
@@ -58,7 +64,7 @@ export interface EngineOptions {
 
     cameraStart?: CameraState;
     cameraDrag?: boolean;
-    cameraDragButtons?: MouseButton[];
+    cameraDragButtons?: PointerButton[];
 
     images?: Record<string, string | HTMLImageElement>;
 }
@@ -73,7 +79,7 @@ const DEFAULT_ENGINE_OPTIONS: Required<EngineOptions> = {
 
     cameraStart: { ...DEFAULT_CAMERA_OPTIONS },
     cameraDrag: false,
-    cameraDragButtons: [MouseButton.MIDDLE, MouseButton.RIGHT],
+    cameraDragButtons: [PointerButton.MIDDLE, PointerButton.RIGHT],
 
     images: {},
 };
@@ -93,6 +99,7 @@ export class Engine {
 
     protected _renderSystem: RenderSystem;
     protected _sceneSystem: SceneSystem;
+    protected _keyboardSystem: KeyboardSystem;
     protected _pointerSystem: PointerSystem;
     protected _imageSystem: ImageSystem;
 
@@ -114,6 +121,7 @@ export class Engine {
         this._rootEntity = new Entity('root');
         this._renderSystem = new RenderSystem(this);
         this._sceneSystem = new SceneSystem(this, this._rootEntity);
+        this._keyboardSystem = new KeyboardSystem();
         this._pointerSystem = new PointerSystem(this);
         this._imageSystem = new ImageSystem();
 
@@ -133,6 +141,8 @@ export class Engine {
         this.addBrowserEventHandler('mousewheel', (_, { delta }) =>
             this.#setPointerScrollDelta(delta),
         );
+        this.addBrowserEventHandler('keydown', (_, data) => this.#setKeyDown(data.key, true));
+        this.addBrowserEventHandler('keyup', (_, data) => this.#setKeyDown(data.key, false));
 
         this._options = { ...DEFAULT_ENGINE_OPTIONS, ...options };
         this._camera = { ...DEFAULT_CAMERA_OPTIONS, ...this._options.cameraStart };
@@ -268,7 +278,11 @@ export class Engine {
         return this.worldToScreenMatrix.transformPoint(new DOMPoint(position.x, position.y));
     }
 
-    getPointerButton(button: MouseButton): MouseButtonState {
+    getKey(keyCode: string): Readonly<KeyboardKeyState> {
+        return this._keyboardSystem.getKey(keyCode);
+    }
+
+    getPointerButton(button: PointerButton): Readonly<PointerButtonState> {
         return this._pointerSystem.getPointerButton(button);
     }
 
@@ -327,6 +341,9 @@ export class Engine {
     onMouseLeave: BrowserEventHandler<'mouseleave'> = (...args) =>
         this.#handleBrowserEvent(...args);
     onMouseOver: BrowserEventHandler<'mouseover'> = (...args) => this.#handleBrowserEvent(...args);
+
+    onKeyDown: BrowserEventHandler<'keydown'> = (...args) => this.#handleBrowserEvent(...args);
+    onKeyUp: BrowserEventHandler<'keyup'> = (...args) => this.#handleBrowserEvent(...args);
 
     #update(deltaTime: number): boolean {
         const startTime = performance.now();
@@ -391,6 +408,7 @@ export class Engine {
             this.#fpsTimeAccumulator = 0;
         }
 
+        this._keyboardSystem.update(deltaTime);
         this._pointerSystem.update(deltaTime);
         const sceneUpdated = this._sceneSystem.update(deltaTime);
 
@@ -409,6 +427,10 @@ export class Engine {
         });
     }
 
+    #setKeyDown(key: string, down: boolean): void {
+        this._keyboardSystem.keyStateChange(key, down);
+    }
+
     #setPointerPosition(position: Position): void {
         this._pointerSystem.pointerPosition = position;
     }
@@ -422,7 +444,7 @@ export class Engine {
         this._pointerSystem.pointerScrollDelta = delta;
     }
 
-    #setPointerButtonDown(button: MouseButton, down: boolean): void {
+    #setPointerButtonDown(button: PointerButton, down: boolean): void {
         this._pointerSystem.pointerButtonStateChange(button, down);
     }
 
