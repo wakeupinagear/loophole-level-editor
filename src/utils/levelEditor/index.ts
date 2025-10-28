@@ -25,6 +25,8 @@ import {
 } from '../utils';
 import { v4 } from 'uuid';
 
+const MAX_STASHED_TILES = 50;
+
 const SCENES: AvailableScenes = {
     [TestScene.name]: (name) => new TestScene(name),
     [UIScene.name]: (name) => new UIScene(name),
@@ -33,12 +35,25 @@ const SCENES: AvailableScenes = {
 
 export type OnLevelChangedCallback = (level: Loophole_Level) => void;
 
+type EditAction =
+    | {
+          type: 'place';
+          entity: Loophole_EntityWithID;
+      }
+    | {
+          type: 'remove';
+          entity: Loophole_EntityWithID;
+      };
+
 export class LevelEditor extends Engine {
     #onLevelChanged: OnLevelChangedCallback;
 
     #level: Loophole_LevelWithIDs | null = null;
     #tiles: Record<string, E_Tile> = {};
     #stashedTiles: Record<string, E_Tile> = {};
+
+    #undoStack: EditAction[][] = [];
+    #redoStack: EditAction[][] = [];
 
     constructor(onLevelChanged: OnLevelChangedCallback, options: EngineOptions = {}) {
         super({
@@ -78,15 +93,15 @@ export class LevelEditor extends Engine {
 
     set level(level: Loophole_Level) {
         this.#level = this.#addIDsToLevel(level);
+        this.#undoStack = [];
+        this.#redoStack = [];
 
         for (const tile of Object.values(this.#tiles)) {
             this.#stashTile(tile);
         }
 
         for (const entity of this.#level.entities) {
-            const tile = this.#claimOrCreateTile(entity);
-            tile.setEnabled(true);
-            tile.entity = entity;
+            this.#placeEntity(entity, false);
         }
     }
 
@@ -103,21 +118,23 @@ export class LevelEditor extends Engine {
         rotation: Loophole_Rotation,
         flipDirection: boolean,
     ) {
-        if (!this.#level) {
-            return;
-        }
-
         const { createEntity, positionType, type } = ENTITY_METADATA[entityType];
-        this.#removeOverlappingTiles(position, positionType, type, edgeAlignment || 'RIGHT');
-
-        const entity = {
-            ...createEntity(position, edgeAlignment, rotation, flipDirection),
-            id: v4(),
-        };
-        console.log(entity);
-        this.#level.entities.push(entity);
-
-        this.#saveTileChange();
+        const overlappingEntities = this.#getOverlappingEntities(
+            position,
+            positionType,
+            type,
+            edgeAlignment || 'RIGHT',
+        );
+        this.#performEditActions([
+            {
+                type: 'place',
+                entity: {
+                    ...createEntity(position, edgeAlignment, rotation, flipDirection),
+                    id: v4(),
+                },
+            },
+            ...overlappingEntities.map((entity) => ({ type: 'remove', entity }) as EditAction),
+        ]);
     }
 
     removeEntity(entity: Loophole_Entity) {
@@ -133,15 +150,70 @@ export class LevelEditor extends Engine {
         position: Loophole_Int2,
         positionType: LoopholePositionType,
         entityType: Loophole_EntityType,
-        edgeAlignment: Loophole_EdgeAlignment,
+        edgeAlignment: Loophole_EdgeAlignment | null,
     ) {
-        this.#removeOverlappingTiles(position, positionType, entityType, edgeAlignment);
+        const overlappingEntities = this.#getOverlappingEntities(
+            position,
+            positionType,
+            entityType,
+            edgeAlignment,
+        );
+        this.#performEditActions(overlappingEntities.map((entity) => ({ type: 'remove', entity })));
+    }
+
+    undo() {
+        const actions = this.#undoStack.pop();
+        if (actions) {
+            this.#performEditActions(actions);
+        }
+    }
+
+    redo() {
+        const actions = this.#redoStack.pop();
+        if (actions) {
+            this.#performEditActions(actions);
+        }
+    }
+
+    #performEditActions(actions: EditAction[]) {
+        for (const action of actions) {
+            switch (action.type) {
+                case 'place': {
+                    this.#placeEntity(action.entity);
+                    break;
+                }
+                case 'remove': {
+                    this.#removeEntity(action.entity);
+                    break;
+                }
+            }
+        }
+
         this.#saveTileChange();
     }
 
-    #stashTile(tile: E_Tile) {
-        this.#stashedTiles[tile.id] = tile;
-        delete this.#tiles[tile.id];
+    #placeEntity(entity: Loophole_EntityWithID, updateLevel: boolean = true) {
+        const tile = this.#claimOrCreateTile(entity);
+        tile.entity = entity;
+        tile.setEnabled(true);
+        if (this.#level && updateLevel) {
+            this.#level.entities.push(entity);
+        }
+
+        return tile;
+    }
+
+    #removeEntity(entity: Loophole_EntityWithID, updateLevel: boolean = true) {
+        const tile = this.#tiles[entity.id];
+        if (tile) {
+            this.#stashTile(tile);
+            tile.setEnabled(false);
+        }
+        if (this.#level && updateLevel) {
+            this.#level.entities = this.#level.entities.filter((e) => e.id !== entity.id);
+        }
+
+        return tile;
     }
 
     #addIDsToLevel(level: Loophole_Level): Loophole_LevelWithIDs {
@@ -161,38 +233,51 @@ export class LevelEditor extends Engine {
         }
 
         const newTile = new E_Tile(this, entity).setScale({ x: TILE_SIZE, y: TILE_SIZE });
+        this.#tiles[entity.id] = newTile;
         this.addSceneEntities(GridScene.name, newTile);
 
         return newTile;
     }
 
-    #removeOverlappingTiles(
+    #stashTile(tile: E_Tile) {
+        const id = tile.id;
+        if (Object.keys(this.#stashedTiles).length < MAX_STASHED_TILES) {
+            this.#stashedTiles[id] = tile;
+            tile.setEnabled(false);
+        } else {
+            tile.destroy();
+        }
+
+        delete this.#tiles[id];
+    }
+
+    #getOverlappingEntities(
         position: Loophole_Int2,
         positionType: LoopholePositionType,
         entityType: Loophole_EntityType,
-        edgeAlignment: Loophole_EdgeAlignment,
-    ) {
+        edgeAlignment: Loophole_EdgeAlignment | null,
+    ): Loophole_EntityWithID[] {
         if (!this.#level) {
-            return;
+            return [];
         }
 
-        this.#level.entities = this.#level.entities.filter((entity) => {
+        return this.#level.entities.filter((entity) => {
             const {
                 tileOwnership,
                 positionType: entityPositionType,
                 type,
             } = ENTITY_METADATA[getLoopholeEntityExtendedType(entity)];
             if (entityPositionType !== positionType) {
-                return true;
+                return false;
             }
 
             if (tileOwnership === 'ONLY_TYPE_IN_TILE' && entityType !== type) {
-                return true;
+                return false;
             }
 
             const entityPos = getLoopholeEntityPosition(entity);
             if (entityPos.x !== position.x || entityPos.y !== position.y) {
-                return true;
+                return false;
             }
 
             if (
@@ -202,14 +287,14 @@ export class LevelEditor extends Engine {
                         (type2 === entityType && type1 === type),
                 )
             ) {
-                return true;
+                return false;
             }
 
             if ('edgePosition' in entity && entity.edgePosition.alignment !== edgeAlignment) {
-                return true;
+                return false;
             }
 
-            return false;
+            return true;
         });
     }
 

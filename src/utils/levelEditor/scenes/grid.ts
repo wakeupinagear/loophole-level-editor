@@ -9,10 +9,13 @@ import type { LevelEditor } from '..';
 import { PointerButton } from '@/utils/engine/systems/pointer';
 import {
     ENTITY_METADATA,
+    ENTITY_TYPE_DRAW_ORDER,
+    getLoopholeEntityDegreeRotation,
     getLoopholeEntityEdgeAlignment,
     getLoopholeEntityExtendedType,
     getLoopholeEntityPosition,
     loopholePositionToEnginePosition,
+    TILE_SIZE,
 } from '@/utils/utils';
 import { C_Lerp } from '@/utils/engine/components/Lerp';
 
@@ -42,7 +45,7 @@ export class E_Tile extends Entity {
         });
         this.#opacityLerp = new C_Lerp({
             get: (() => {
-                console.log('value', shapeComp.style.globalAlpha);
+                console.log('value', shapeComp.style.globalAlpha, this.name);
                 return shapeComp.style.globalAlpha ?? 0;
             }).bind(this),
             set: ((value: number) => {
@@ -51,10 +54,8 @@ export class E_Tile extends Entity {
             speed: 5,
         });
         targetEntity.addComponents(this.#pointerTarget, shapeComp, this.#opacityLerp);
-        this.addChildren(targetEntity);
-        console.log('value', shapeComp.style.globalAlpha);
 
-        this.#onEntityChanged();
+        this.addChildren(targetEntity);
     }
 
     get entity(): Loophole_EntityWithID {
@@ -88,13 +89,19 @@ export class E_Tile extends Entity {
         const loopholePosition = getLoopholeEntityPosition(this.#entity);
         const edgeAlignment = getLoopholeEntityEdgeAlignment(this.#entity);
         const enginePosition = loopholePositionToEnginePosition(loopholePosition, edgeAlignment);
+        this.setRotation(getLoopholeEntityDegreeRotation(this.#entity));
         this.setPosition({
             x: enginePosition.x * this.scale.x,
             y: enginePosition.y * this.scale.y,
         });
 
         const extendedType = getLoopholeEntityExtendedType(this.#entity);
-        const { name } = ENTITY_METADATA[extendedType];
+        const { name, tileScale: tileScaleOverride = 1 } = ENTITY_METADATA[extendedType];
+        this.setScale({
+            x: tileScaleOverride * TILE_SIZE,
+            y: tileScaleOverride * TILE_SIZE,
+        });
+        this.setZIndex(ENTITY_TYPE_DRAW_ORDER[this.#entity.entityType] + 1);
         this.#tileImage.imageName = name;
     }
 }

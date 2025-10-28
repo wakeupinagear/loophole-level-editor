@@ -89,7 +89,7 @@ export const getLoopholeEntityPosition = (entity: Loophole_Entity): Loophole_Int
 
 export const loopholePositionToEnginePosition = (
     position: Loophole_Int2,
-    edgeAlignment?: Loophole_EdgeAlignment,
+    edgeAlignment?: Loophole_EdgeAlignment | null,
 ): Position => {
     return {
         x: position.x + (edgeAlignment === 'RIGHT' ? 0.5 : 0),
@@ -97,12 +97,14 @@ export const loopholePositionToEnginePosition = (
     };
 };
 
-export const getLoopholeEntityEdgeAlignment = (entity: Loophole_Entity): Loophole_EdgeAlignment => {
+export const getLoopholeEntityEdgeAlignment = (
+    entity: Loophole_Entity,
+): Loophole_EdgeAlignment | null => {
     if ('edgePosition' in entity) {
         return entity.edgePosition.alignment;
     }
 
-    return 'RIGHT';
+    return null;
 };
 
 export const ColorPalette = {
@@ -400,4 +402,18 @@ const LOOPHOLE_ROTATION_LIST: Loophole_Rotation[] = ['RIGHT', 'UP', 'LEFT', 'DOW
 
 export const degreesToLoopholeRotation = (rotation: number): Loophole_Rotation => {
     return LOOPHOLE_ROTATION_LIST[Math.round((rotation % 360) / 90)];
+};
+
+export const getLoopholeEntityDegreeRotation = (entity: Loophole_Entity): number => {
+    if ('edgePosition' in entity) {
+        return (
+            loopholeRotationToDegrees(entity.edgePosition.alignment === 'RIGHT' ? 'RIGHT' : 'UP') +
+            ('flipDirection' in entity && entity.flipDirection ? 180 : 0)
+        );
+    }
+    if ('rotation' in entity) {
+        return loopholeRotationToDegrees(entity.rotation);
+    }
+
+    return 0;
 };

@@ -11,17 +11,25 @@ export function LevelEditorComponent() {
     const levels = useAppStore((state) => state.levels);
     const activeLevelID = useAppStore((state) => state.activeLevelID);
     const updateLevel = useAppStore((state) => state.updateLevel);
+    const levelHashes = useAppStore((state) => state.levelHashes);
 
     const level = levels[activeLevelID];
+    const levelHash = levelHashes[activeLevelID];
+    const prevLevelHash = useRef<number | null>(null);
 
     useEffect(() => {
         if (!window.engine) {
-            levelEditorRef.current = new LevelEditor((level) => updateLevel({ level }), {});
+            levelEditorRef.current = new LevelEditor((updatedLevel) => {
+                updateLevel(level.id, { level: updatedLevel });
+            }, {});
         } else {
-            levelEditorRef.current = window.engine as LevelEditor;
-            levelEditorRef.current.level = level.level;
+            if (prevLevelHash.current !== levelHash) {
+                levelEditorRef.current = window.engine as LevelEditor;
+                levelEditorRef.current.level = level.level;
+                prevLevelHash.current = levelHash;
+            }
         }
-    }, [level, updateLevel]);
+    }, [activeLevelID, levelHash, level, updateLevel]);
 
     return (
         <div className="h-screen w-screen flex flex-col">

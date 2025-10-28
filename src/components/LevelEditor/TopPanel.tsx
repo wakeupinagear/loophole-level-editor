@@ -18,24 +18,27 @@ export default function TopPanel() {
                 className="border-none outline-none !text-xl font-bold"
                 value={name}
                 placeholder={DEFAULT_LEVEL_NAME}
-                onChange={(e) => updateLevel({ ...currentLevel, name: e.target.value })}
+                onChange={(e) => updateLevel(currentLevel.id, { name: e.target.value })}
             />
             <button
                 onClick={() =>
-                    updateLevel({
-                        ...currentLevel,
-                        level: {
-                            colorPalette: 0,
-                            entities: [],
-                            entrance: {
-                                entityType: 'TIME_MACHINE',
-                                position: { x: 0, y: 0 },
-                                rotation: 'RIGHT',
+                    updateLevel(
+                        currentLevel.id,
+                        {
+                            level: {
+                                colorPalette: 0,
+                                entities: [],
+                                entrance: {
+                                    entityType: 'TIME_MACHINE',
+                                    position: { x: 0, y: 0 },
+                                    rotation: 'RIGHT',
+                                },
+                                exitPosition: { x: 0, y: 0 },
+                                version: 0,
                             },
-                            exitPosition: { x: 0, y: 0 },
-                            version: 0,
                         },
-                    })
+                        true,
+                    )
                 }
             >
                 reset level

@@ -10,11 +10,12 @@ import type { E_Tile } from './levelEditor/scenes/grid';
 
 interface AppStore {
     levels: Record<string, LevelWithMetadata>;
+    levelHashes: Record<string, number>;
     activeLevelID: string;
     addLevel: (level: LevelWithMetadata) => void;
     setActiveLevelID: (levelID: string) => void;
     removeLevel: (levelID: string) => void;
-    updateLevel: (level: Partial<LevelWithMetadata>) => void;
+    updateLevel: (id: string, level: Partial<LevelWithMetadata>, sendToEditor?: boolean) => void;
 
     brushEntityType: Loophole_ExtendedEntityType | null;
     setBrushEntityType: (entityType: Loophole_ExtendedEntityType | null) => void;
@@ -38,9 +39,15 @@ export const useAppStore = create<AppStore>()(
                 levels: {
                     [defaultLevel.id]: defaultLevel,
                 },
+                levelHashes: {
+                    [defaultLevel.id]: Math.random(),
+                },
                 activeLevelID: defaultLevel.id,
                 addLevel: (level) =>
-                    set((state) => ({ levels: { ...state.levels, [level.id]: level } })),
+                    set((state) => ({
+                        levels: { ...state.levels, [level.id]: level },
+                        levelHashes: { ...state.levelHashes, [level.id]: Math.random() },
+                    })),
                 setActiveLevelID: (levelID: string) => set({ activeLevelID: levelID }),
                 removeLevel: (levelID: string) =>
                     set((state) => ({
@@ -48,14 +55,18 @@ export const useAppStore = create<AppStore>()(
                             Object.entries(state.levels).filter(([id]) => id !== levelID),
                         ),
                     })),
-                updateLevel: (level) => {
+                updateLevel: (id, level, sendToEditor = false) => {
                     set((state) => ({
                         levels: Object.fromEntries(
-                            Object.entries(state.levels).map(([id, l]) => [
-                                id,
-                                l.id === level.id ? { ...l, ...level } : l,
+                            Object.entries(state.levels).map(([currID, l]) => [
+                                currID,
+                                currID === id ? { ...l, ...level } : l,
                             ]),
                         ),
+                        levelHashes: {
+                            ...state.levelHashes,
+                            [id]: sendToEditor ? Math.random() : state.levelHashes[id],
+                        },
                     }));
                 },
 
