@@ -9,7 +9,7 @@ import { Entity } from '../../engine/entities';
 import { Scene } from '../../engine/systems/scene';
 import { C_Image } from '@/utils/engine/components/Image';
 import { getAppStore } from '@/utils/store';
-import type { Loophole_EdgeAlignment } from '../externalLevelSchema';
+import type { Loophole_EdgeAlignment, Loophole_ExtendedEntityType } from '../externalLevelSchema';
 import { PointerButton } from '@/utils/engine/systems/pointer';
 import type { Position } from '@/utils/engine/types';
 import type { LevelEditor } from '..';
@@ -385,6 +385,16 @@ export class UIScene extends Scene {
         } else if (yKeyState.pressed && yKeyState.mod) {
             this.#editor.redo();
             updated = true;
+        }
+
+        const { setBrushEntityType } = getAppStore();
+        const keys = Object.keys(ENTITY_METADATA) as Loophole_ExtendedEntityType[];
+        for (let i = 0; i < Object.keys(ENTITY_METADATA).length; i++) {
+            if (this.#editor.getKey((i === 9 ? 0 : i + 1).toString()).pressed) {
+                setBrushEntityType(keys[i]);
+                updated = true;
+                break;
+            }
         }
 
         return updated;
