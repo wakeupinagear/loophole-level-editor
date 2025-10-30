@@ -124,6 +124,8 @@ export class LevelEditor extends Engine {
         }
         const entranceTile = this.#placeEntity(this.#level.entrance, false);
         entranceTile.isEntrance = true;
+
+        getAppStore().setSelectedTiles([]);
     }
 
     get tiles(): Readonly<Record<string, E_Tile>> {
@@ -313,6 +315,25 @@ export class LevelEditor extends Engine {
         return this.#performEditActions(group);
     }
 
+    updateEntities(
+        entities: Loophole_EntityWithID[],
+        updatedProperties: Partial<Loophole_EntityWithID>,
+        hash?: string | null,
+    ): E_Tile[] {
+        const group: EditActionGroup = {
+            actions: [],
+            hash: hash || v4(),
+        };
+
+        for (const entity of entities) {
+            const updatedEntity = { ...entity, ...updatedProperties } as Loophole_EntityWithID;
+            group.actions.push({ type: 'remove', entity });
+            group.actions.push({ type: 'place', entity: updatedEntity });
+        }
+
+        return this.#performEditActions(group);
+    }
+
     rotateEntities(
         entities: Loophole_EntityWithID[],
         centerPosition: Loophole_Int2,
@@ -351,7 +372,7 @@ export class LevelEditor extends Engine {
             }
         }
 
-        getAppStore().deselectEntities(Array.from(removedIDs));
+        //getAppStore().deselectEntities(Array.from(removedIDs));
 
         if (updateStacks) {
             this.#undoStack.push(actions);

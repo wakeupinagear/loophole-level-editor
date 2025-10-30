@@ -109,8 +109,8 @@ export abstract class C_Drawable extends Component {
         return this._scale;
     }
 
-    setScale(scale: Position): this {
-        this._scale = scale;
+    setScale(scale: Position | number): this {
+        this._scale = typeof scale === 'number' ? { x: scale, y: scale } : scale;
         return this;
     }
 

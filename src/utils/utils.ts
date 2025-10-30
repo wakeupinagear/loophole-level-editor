@@ -80,7 +80,7 @@ export const convertLoopholeTypeToExtendedType = (
         default:
             return type as Loophole_ExtendedEntityType;
     }
-}
+};
 
 export const getLoopholeEntityPositionType = (entity: Loophole_Entity): LoopholePositionType => {
     if ('edgePosition' in entity) {
@@ -163,6 +163,7 @@ interface EntityMetadata {
     tileScale: number;
     hasRotation?: boolean;
     hasFlipDirection?: boolean;
+    hasChannel?: boolean;
 }
 
 export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata> = {
@@ -268,6 +269,7 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         }),
         tileOwnership: 'ONLY_TYPE_IN_TILE',
         tileScale: TILE_CENTER_FRACTION,
+        hasChannel: true,
     },
     SAUCE: {
         name: 'Sauce',
@@ -297,6 +299,7 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         }),
         tileOwnership: 'ONLY_ENTITY_IN_TILE',
         tileScale: DEFAULT_WALL_SCALE,
+        hasChannel: true,
     },
     WIRE: {
         name: 'Wire',
@@ -315,6 +318,7 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         tileOwnership: 'ONLY_TYPE_IN_TILE',
         tileScale: 1,
         hasRotation: true,
+        hasChannel: true,
     },
     CLEANSING_POOL: {
         name: 'Cleansing Pool',
@@ -427,4 +431,12 @@ export const getLoopholeEntityDegreeRotation = (entity: Loophole_Entity): number
     }
 
     return 0;
+};
+
+export const getLoopholeEntityChannel = (entity: Loophole_Entity): number | null => {
+    if ('channel' in entity) {
+        return entity.channel;
+    }
+
+    return null;
 };

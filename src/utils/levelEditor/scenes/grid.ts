@@ -22,7 +22,7 @@ import { C_Lerp, C_LerpOpacity, C_LerpPosition } from '@/utils/engine/components
 import type { Position } from '@/utils/engine/types';
 
 const ACTIVE_TILE_OPACITY = 0.3;
-const TILE_HIGHLIGHT_SCALE_MULT = 1.1;
+const TILE_HIGHLIGHT_SCALE_MULT = 1.2;
 
 export class E_Tile extends Entity {
     #editor: LevelEditor;
@@ -58,7 +58,7 @@ export class E_Tile extends Entity {
         this.#highlightShape = new C_Shape('shape', 'RECT', {
             fillStyle: 'white',
             globalAlpha: 0,
-        });
+        }).setScale(1 / TILE_HIGHLIGHT_SCALE_MULT);
         this.#opacityLerp = new C_LerpOpacity(this.#highlightShape, 5);
         this.#highlightEntity.addComponents(
             this.#pointerTarget,
@@ -160,7 +160,7 @@ export class E_Tile extends Entity {
             positionType === 'CELL'
                 ? TILE_HIGHLIGHT_SCALE_MULT
                 : {
-                      x: 0.3 * TILE_HIGHLIGHT_SCALE_MULT,
+                      x: 0.5 * TILE_HIGHLIGHT_SCALE_MULT,
                       y: TILE_HIGHLIGHT_SCALE_MULT,
                   },
         );

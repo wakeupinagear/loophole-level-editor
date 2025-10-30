@@ -6,3 +6,7 @@
 .pixelated-image {
     image-rendering: pixelated;
 }
+
+h2 {
+    @apply font-bold text-xl;
+}
