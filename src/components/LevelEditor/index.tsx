@@ -5,6 +5,7 @@ import { EngineCanvas } from '../engine/EngineCanvas';
 import TopPanel from './TopPanel';
 import TilePicker from './TilePicker';
 import { FPSCounter } from '../engine/FPSCounter';
+import { LayerButtons } from './LayerButtons';
 
 export function LevelEditorComponent() {
     const levelEditorRef = useRef<LevelEditor | null>(null);
@@ -38,8 +39,11 @@ export function LevelEditorComponent() {
             </div>
             <div className="h-full flex flex-col p-4 gap-4 z-10 pointer-events-none">
                 <TopPanel />
-                <TilePicker />
-                <FPSCounter className="fixed top-20 right-4 text-right" />
+                <div className="flex flex-col gap-4 max-w-[18.5rem]">
+                    <TilePicker />
+                    <LayerButtons />
+                </div>
+                <FPSCounter className="fixed bottom-4 right-4 text-right" />
             </div>
         </div>
     );

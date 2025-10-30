@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { createLevelWithMetadata, type LevelWithMetadata } from './utils';
+import {
+    createLevelWithMetadata,
+    getLoopholeEntityExtendedType,
+    type LevelWithMetadata,
+} from './utils';
 import type {
     Loophole_ExtendedEntityType,
     Loophole_Rotation,
@@ -29,6 +33,14 @@ interface AppStore {
 
     isDraggingTiles: boolean;
     setIsDraggingTiles: (isDragging: boolean) => void;
+
+    lockedLayers: Partial<Record<Loophole_ExtendedEntityType, boolean>>;
+    setLockedLayer: (layer: Loophole_ExtendedEntityType, locked: boolean) => void;
+
+    editableLayers: Loophole_ExtendedEntityType[];
+    setEditableLayers: (layers: Loophole_ExtendedEntityType[]) => void;
+    addEditableLayer: (layer: Loophole_ExtendedEntityType) => void;
+    removeEditableLayer: (layer: Loophole_ExtendedEntityType) => void;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -81,13 +93,38 @@ export const useAppStore = create<AppStore>()(
 
                 selectedTiles: {},
                 setSelectedTiles: (tiles) => {
-                    set({
-                        selectedTiles: Object.fromEntries(tiles.map((t) => [t.entity.tID, t])),
+                    set((state) => {
+                        const filteredTiles = tiles.filter(
+                            (t) => !state.lockedLayers[getLoopholeEntityExtendedType(t.entity)],
+                        );
+                        return {
+                            selectedTiles: Object.fromEntries(
+                                filteredTiles.map((t) => [t.entity.tID, t]),
+                            ),
+                        };
                     });
                 },
 
                 isDraggingTiles: false,
                 setIsDraggingTiles: (isDragging) => set({ isDraggingTiles: isDragging }),
+
+                lockedLayers: {},
+                setLockedLayer: (layer, locked) =>
+                    set((state) => ({ lockedLayers: { ...state.lockedLayers, [layer]: locked } })),
+
+                editableLayers: ['SAUCE', 'WIRE'],
+                setEditableLayers: (layers) => set({ editableLayers: layers }),
+                addEditableLayer: (layer) =>
+                    set((state) => ({
+                        editableLayers: state.editableLayers.includes(layer)
+                            ? state.editableLayers
+                            : [...state.editableLayers, layer],
+                    })),
+                removeEditableLayer: (layer) =>
+                    set((state) => ({
+                        editableLayers: state.editableLayers.filter((l) => l !== layer),
+                        lockedLayers: { ...state.lockedLayers, [layer]: false },
+                    })),
             };
         },
         {
@@ -99,8 +136,10 @@ export const useAppStore = create<AppStore>()(
                 brushEntityType: state.brushEntityType,
                 brushEntityRotation: state.brushEntityRotation,
                 brushEntityFlipDirection: state.brushEntityFlipDirection,
+                lockedLayers: state.lockedLayers,
+                editableLayers: state.editableLayers,
             }),
-            version: 1,
+            version: 2,
             migrate: () => {},
         },
     ),

@@ -1,7 +1,7 @@
 import { C_Shape } from '../../engine/components/Shape';
 import { Entity } from '../../engine/entities';
 import { Scene } from '../../engine/systems/scene';
-import type { Loophole_EntityWithID } from '../externalLevelSchema';
+import type { Loophole_EntityWithID, Loophole_ExtendedEntityType } from '../externalLevelSchema';
 import { C_PointerTarget } from '../../engine/components/PointerTarget';
 import { getAppStore } from '@/utils/store';
 import { C_Image } from '@/utils/engine/components/Image';
@@ -27,6 +27,7 @@ const TILE_HIGHLIGHT_SCALE_MULT = 1.1;
 export class E_Tile extends Entity {
     #editor: LevelEditor;
     #entity: Loophole_EntityWithID;
+    #type: Loophole_ExtendedEntityType;
     #isEntrance: boolean = false;
 
     #initialized: boolean = false;
@@ -44,6 +45,7 @@ export class E_Tile extends Entity {
 
         this.#editor = editor;
         this.#entity = entity;
+        this.#type = getLoopholeEntityExtendedType(entity);
         this.#tileImage = new C_Image('tile', '', {
             imageSmoothingEnabled: false,
         });
@@ -92,7 +94,8 @@ export class E_Tile extends Entity {
     }
 
     override update(deltaTime: number) {
-        const { brushEntityType, selectedTiles, setSelectedTiles } = getAppStore();
+        const { brushEntityType, selectedTiles, setSelectedTiles, lockedLayers } = getAppStore();
+        this.#pointerTarget.setEnabled(Boolean(!lockedLayers[this.#type]));
         const hoveredByPointer = this.#pointerTarget.isPointerHovered && brushEntityType === null;
         const active = hoveredByPointer || selectedTiles[this.entity.tID] !== undefined;
 
@@ -133,9 +136,9 @@ export class E_Tile extends Entity {
         const loopholePosition = getLoopholeEntityPosition(this.#entity);
         const edgeAlignment = getLoopholeEntityEdgeAlignment(this.#entity);
         const enginePosition = loopholePositionToEnginePosition(loopholePosition, edgeAlignment);
-        const extendedType = getLoopholeEntityExtendedType(this.#entity);
+        this.#type = getLoopholeEntityExtendedType(this.#entity);
         const positionType = getLoopholeEntityPositionType(this.#entity);
-        const { name, tileScale: tileScaleOverride = 1 } = ENTITY_METADATA[extendedType];
+        const { name, tileScale: tileScaleOverride = 1 } = ENTITY_METADATA[this.#type];
 
         this.setScale(tileScaleOverride * TILE_SIZE);
         this.setRotation(getLoopholeEntityDegreeRotation(this.#entity));

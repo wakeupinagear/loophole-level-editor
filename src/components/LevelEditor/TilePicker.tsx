@@ -10,7 +10,7 @@ export default function TilePicker() {
 
     return (
         <Panel className="flex h-min w-fit">
-            <div className="grid grid-cols-4 gap-2 ">
+            <div className="grid grid-cols-4 gap-2">
                 {Object.entries(ENTITY_METADATA).map(([entityType, metadata]) => (
                     <button
                         key={entityType}
