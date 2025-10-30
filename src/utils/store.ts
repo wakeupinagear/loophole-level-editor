@@ -25,7 +25,10 @@ interface AppStore {
     setBrushEntityFlipDirection: (direction: boolean) => void;
 
     selectedTiles: Record<string, E_Tile>;
-    setSelectedTiles: (tiles: Record<string, E_Tile>) => void;
+    setSelectedTiles: (tiles: E_Tile[]) => void;
+
+    isDraggingTiles: boolean;
+    setIsDraggingTiles: (isDragging: boolean) => void;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -78,8 +81,13 @@ export const useAppStore = create<AppStore>()(
 
                 selectedTiles: {},
                 setSelectedTiles: (tiles) => {
-                    set({ selectedTiles: tiles });
+                    set({
+                        selectedTiles: Object.fromEntries(tiles.map((t) => [t.entity.id, t])),
+                    });
                 },
+
+                isDraggingTiles: false,
+                setIsDraggingTiles: (isDragging) => set({ isDraggingTiles: isDragging }),
             };
         },
         {

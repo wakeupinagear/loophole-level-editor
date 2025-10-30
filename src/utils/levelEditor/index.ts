@@ -124,7 +124,7 @@ export class LevelEditor extends Engine {
         edgeAlignment: Loophole_EdgeAlignment | null,
         rotation: Loophole_Rotation,
         flipDirection: boolean,
-    ) {
+    ): E_Tile[] {
         const { createEntity, positionType, type } = ENTITY_METADATA[entityType];
         const overlappingEntities = this.#getOverlappingEntities(
             position,
@@ -132,7 +132,8 @@ export class LevelEditor extends Engine {
             type,
             edgeAlignment || 'RIGHT',
         );
-        this.#performEditActions([
+
+        return this.#performEditActions([
             {
                 type: 'place',
                 entity: {
@@ -144,7 +145,7 @@ export class LevelEditor extends Engine {
         ]);
     }
 
-    removeEntities(...entities: Loophole_EntityWithID[]) {
+    removeEntities(...entities: Loophole_EntityWithID[]): E_Tile[] {
         const tiles = entities.map((entity) => ({
             position: getLoopholeEntityPosition(entity),
             positionType: getLoopholeEntityPositionType(entity),
@@ -162,7 +163,7 @@ export class LevelEditor extends Engine {
             entityType: Loophole_EntityType;
             edgeAlignment: Loophole_EdgeAlignment | null;
         }[]
-    ) {
+    ): E_Tile[] {
         const overlappingEntities: Loophole_EntityWithID[] = [];
         tiles.forEach((tile) => {
             overlappingEntities.push(
@@ -175,7 +176,9 @@ export class LevelEditor extends Engine {
             );
         });
 
-        this.#performEditActions(overlappingEntities.map((entity) => ({ type: 'remove', entity })));
+        return this.#performEditActions(
+            overlappingEntities.map((entity) => ({ type: 'remove', entity })),
+        );
     }
 
     undo() {
@@ -186,9 +189,7 @@ export class LevelEditor extends Engine {
         const actions = this.#undoStack.pop()!;
         const reversedActions = this.#reverseActions(actions);
         const affectedTiles = this.#performEditActions(reversedActions, false);
-        getAppStore().setSelectedTiles(
-            Object.fromEntries(affectedTiles.map((t) => [t.entity.id, t])),
-        );
+        getAppStore().setSelectedTiles(affectedTiles);
         affectedTiles.forEach((t) => t.syncVisualState());
 
         this.#redoStack.push(actions);
@@ -201,12 +202,115 @@ export class LevelEditor extends Engine {
 
         const actions = this.#redoStack.pop()!;
         const affectedTiles = this.#performEditActions(actions, false);
-        getAppStore().setSelectedTiles(
-            Object.fromEntries(affectedTiles.map((t) => [t.entity.id, t])),
-        );
+        getAppStore().setSelectedTiles(affectedTiles);
         affectedTiles.forEach((t) => t.syncVisualState());
 
         this.#undoStack.push(actions);
+    }
+
+    moveEntities(
+        entities: Loophole_EntityWithID[],
+        offset: { x: number; y: number },
+    ): E_Tile[] {
+        const actions: EditAction[] = [];
+
+        // Remove old entities and create new ones at offset positions
+        for (const entity of entities) {
+            actions.push({ type: 'remove', entity });
+
+            const newEntity = { ...entity };
+            if ('edgePosition' in newEntity) {
+                newEntity.edgePosition = {
+                    ...newEntity.edgePosition,
+                    cell: {
+                        x: newEntity.edgePosition.cell.x + offset.x,
+                        y: newEntity.edgePosition.cell.y + offset.y,
+                    },
+                };
+            } else if ('position' in newEntity) {
+                newEntity.position = {
+                    x: newEntity.position.x + offset.x,
+                    y: newEntity.position.y + offset.y,
+                };
+            }
+
+            actions.push({ type: 'place', entity: newEntity });
+        }
+
+        return this.#performEditActions(actions);
+    }
+
+    rotateEntities(
+        entities: Loophole_EntityWithID[],
+        centerPosition: Loophole_Int2,
+        rotation: 90 | -90,
+    ): E_Tile[] {
+        const actions: EditAction[] = [];
+
+        for (const entity of entities) {
+            actions.push({ type: 'remove', entity });
+
+            const newEntity = { ...entity };
+            const entityPos = getLoopholeEntityPosition(entity);
+
+            // Calculate relative position from center
+            const relX = entityPos.x - centerPosition.x;
+            const relY = entityPos.y - centerPosition.y;
+
+            // Rotate position around center
+            let newX: number, newY: number;
+            if (rotation === 90) {
+                // 90 degrees counter-clockwise: (x, y) -> (-y, x)
+                newX = -relY;
+                newY = relX;
+            } else {
+                // -90 degrees (270 counter-clockwise): (x, y) -> (y, -x)
+                newX = relY;
+                newY = -relX;
+            }
+
+            const newPos = {
+                x: Math.round(centerPosition.x + newX),
+                y: Math.round(centerPosition.y + newY),
+            };
+
+            // Update entity position
+            if ('edgePosition' in newEntity) {
+                // For edge entities, rotate the alignment
+                const currentAlignment = newEntity.edgePosition.alignment;
+                let newAlignment: Loophole_EdgeAlignment;
+                
+                if (rotation === 90) {
+                    // RIGHT -> TOP, TOP -> LEFT (which is RIGHT on the other side)
+                    newAlignment = currentAlignment === 'RIGHT' ? 'TOP' : 'RIGHT';
+                } else {
+                    // RIGHT -> BOTTOM (TOP on other side), TOP -> RIGHT
+                    newAlignment = currentAlignment === 'RIGHT' ? 'TOP' : 'RIGHT';
+                }
+
+                newEntity.edgePosition = {
+                    cell: newPos,
+                    alignment: newAlignment,
+                };
+            } else if ('position' in newEntity) {
+                newEntity.position = newPos;
+            }
+
+            // Rotate entity's own rotation if it has one
+            if ('rotation' in newEntity) {
+                const rotations: Loophole_Rotation[] = ['RIGHT', 'UP', 'LEFT', 'DOWN'];
+                const currentIndex = rotations.indexOf(newEntity.rotation);
+                const newIndex =
+                    rotation === 90
+                        ? (currentIndex + 1) % 4
+                        : (currentIndex + 3) % 4;
+                newEntity.rotation = rotations[newIndex];
+            }
+
+            actions.push({ type: 'place', entity: newEntity });
+        }
+
+        return this.#performEditActions(actions);
     }
 
     #performEditActions(actions: EditAction[], updateStacks: boolean = true): E_Tile[] {

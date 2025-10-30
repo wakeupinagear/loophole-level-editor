@@ -85,11 +85,14 @@ class E_TileCursor extends Entity {
             setBrushEntityRotation,
             brushEntityFlipDirection,
             setBrushEntityFlipDirection,
+            setSelectedTiles,
+            isDraggingTiles,
         } = getAppStore();
         if (
             this.#editor.pointerState.onScreen &&
             !multiSelectIsActive(this.#editor) &&
             !cameraDragIsActive(this.#editor) &&
+            !isDraggingTiles &&
             brushEntityType
         ) {
             const {
@@ -174,13 +177,15 @@ class E_TileCursor extends Entity {
             }
 
             if (this.#editor.getPointerButton(PointerButton.LEFT).clicked) {
-                this.#editor.placeTile(
+                const tiles = this.#editor.placeTile(
                     tilePosition,
                     brushEntityType,
                     edgeAlignment,
                     brushEntityRotation,
                     brushEntityFlipDirection,
                 );
+                setSelectedTiles(tiles);
+
                 this.#editor.capturePointerButtonClick(PointerButton.LEFT);
             } else if (this.#editor.getPointerButton(PointerButton.RIGHT).clicked) {
                 this.#editor.removeTiles({
@@ -236,9 +241,9 @@ class E_SelectionCursor extends Entity {
         let updated = super.update(deltaTime);
         const pointerPosition = { ...this.#editor.pointerState.worldPosition };
 
-        const { brushEntityType, setSelectedTiles } = getAppStore();
+        const { brushEntityType, setSelectedTiles, isDraggingTiles } = getAppStore();
         const leftButtonState = this.#editor.getPointerButton(PointerButton.LEFT);
-        if (leftButtonState.pressed) {
+        if (leftButtonState.pressed && !isDraggingTiles) {
             this.#selectAllClickPosition = pointerPosition;
         } else if (leftButtonState.released || !this.#editor.pointerState.onScreen) {
             this.#selectAllClickPosition = null;
@@ -246,10 +251,11 @@ class E_SelectionCursor extends Entity {
 
         if (
             (multiSelectIsActive(this.#editor) || !brushEntityType) &&
-            !cameraDragIsActive(this.#editor)
+            !cameraDragIsActive(this.#editor) &&
+            !isDraggingTiles
         ) {
             if (leftButtonState.clicked) {
-                setSelectedTiles({});
+                setSelectedTiles([]);
             } else if (
                 leftButtonState.down &&
                 this.#selectAllClickPosition &&
@@ -276,10 +282,7 @@ class E_SelectionCursor extends Entity {
                     .getPointerTargetsWithinBox(topLeft, bottomRight)
                     .map((t) => t.entity?.parent)
                     .filter((e) => e?.typeString === E_Tile.name) as E_Tile[];
-                const hoveredTileMap = Object.fromEntries(
-                    hoveredTiles.map((t) => [t.entity.id, t]),
-                );
-                setSelectedTiles(hoveredTileMap);
+                setSelectedTiles(hoveredTiles);
 
                 updated = true;
                 this.#active = true;
@@ -353,7 +356,7 @@ export class UIScene extends Scene {
 
         if (this.#editor.getKey('Backspace').pressed) {
             this.#editor.removeEntities(...Object.values(selectedTiles).map((t) => t.entity));
-            setSelectedTiles({});
+            setSelectedTiles([]);
             updated = true;
         }
 

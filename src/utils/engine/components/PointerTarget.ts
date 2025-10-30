@@ -105,20 +105,41 @@ export class C_PointerTarget extends Component {
             .scale(camera.zoom, camera.zoom);
         const sceneMatrix = cameraMatrix.inverse().multiply(transform.worldMatrix as DOMMatrix);
 
-        // Extract scene-space position and scale
+        // Extract scene-space position
         const scenePosition = { x: sceneMatrix.e, y: sceneMatrix.f };
-        const sceneScale = {
-            x: Math.sqrt(sceneMatrix.a * sceneMatrix.a + sceneMatrix.b * sceneMatrix.b),
-            y: Math.sqrt(sceneMatrix.c * sceneMatrix.c + sceneMatrix.d * sceneMatrix.d),
-        };
 
-        // Get entity bounds
-        const entityLeft = scenePosition.x - sceneScale.x / 2;
-        const entityRight = scenePosition.x + sceneScale.x / 2;
-        const entityTop = scenePosition.y - sceneScale.y / 2;
-        const entityBottom = scenePosition.y + sceneScale.y / 2;
+        // Use worldScale directly, which properly accounts for parent scale
+        const worldScale = transform.worldScale;
+        const worldRotation = transform.worldRotation;
 
-        // Check if entity intersects with selection box
+        // Calculate the four corners of the rotated entity
+        const halfWidth = worldScale.x / 2;
+        const halfHeight = worldScale.y / 2;
+        const theta = (worldRotation * Math.PI) / 180; // Convert to radians
+        const cosTheta = Math.cos(theta);
+        const sinTheta = Math.sin(theta);
+
+        // Define corners relative to center (unrotated)
+        const corners = [
+            { x: -halfWidth, y: -halfHeight }, // Top-left
+            { x: halfWidth, y: -halfHeight }, // Top-right
+            { x: halfWidth, y: halfHeight }, // Bottom-right
+            { x: -halfWidth, y: halfHeight }, // Bottom-left
+        ];
+
+        // Rotate corners and translate to scene position
+        const rotatedCorners = corners.map((corner) => ({
+            x: scenePosition.x + (corner.x * cosTheta - corner.y * sinTheta),
+            y: scenePosition.y + (corner.x * sinTheta + corner.y * cosTheta),
+        }));
+
+        // Find the axis-aligned bounding box of the rotated entity
+        const entityLeft = Math.min(...rotatedCorners.map((c) => c.x));
+        const entityRight = Math.max(...rotatedCorners.map((c) => c.x));
+        const entityTop = Math.min(...rotatedCorners.map((c) => c.y));
+        const entityBottom = Math.max(...rotatedCorners.map((c) => c.y));
+
+        // Check if entity's AABB intersects with selection box
         return !(
             entityRight < boxLeft ||
             entityLeft > boxRight ||
