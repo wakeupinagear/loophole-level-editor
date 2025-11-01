@@ -40,6 +40,7 @@ export const RENDER_CMD = {
     POP_TRANSFORM: 'poXf',
     DRAW_RECT: 'dR',
     DRAW_ELLIPSE: 'dE',
+    DRAW_LINE: 'dL',
     DRAW_IMAGE: 'dI',
     DRAW_TEXT: 'dT',
 } as const;
@@ -72,7 +73,19 @@ export type DrawDataText = {
     text: string;
 };
 
-export type RenderCommandData = { t: DOMMatrix } | DrawDataShape | DrawDataImage | DrawDataText;
+export type DrawDataLine = {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+};
+
+export type RenderCommandData =
+    | { t: DOMMatrix }
+    | DrawDataShape
+    | DrawDataImage
+    | DrawDataText
+    | DrawDataLine;
 
 export class RenderCommand {
     #cmd: CMD;
@@ -185,6 +198,32 @@ export class RenderSystem extends System {
                         if (style.strokeStyle) {
                             ctx.stroke();
                         }
+                        ctx.closePath();
+                    }
+
+                    break;
+                }
+                case RENDER_CMD.DRAW_LINE: {
+                    if (!data || !('x1' in data)) {
+                        continue;
+                    }
+
+                    if (style.globalAlpha > 0) {
+                        const { x1, y1, x2, y2 } = data;
+                        this.#applyStyle(ctx, style);
+
+                        const strokeColor = style.strokeStyle ? style.strokeStyle : style.fillStyle;
+                        if (strokeColor !== undefined) {
+                            ctx.strokeStyle = strokeColor;
+                        }
+
+                        ctx.lineWidth =
+                            style.lineWidth && style.lineWidth > 0 ? style.lineWidth : 1;
+
+                        ctx.beginPath();
+                        ctx.moveTo(x1, y1);
+                        ctx.lineTo(x2, y2);
+                        ctx.stroke();
                         ctx.closePath();
                     }
 

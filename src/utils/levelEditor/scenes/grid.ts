@@ -1,4 +1,5 @@
 import { C_Shape } from '../../engine/components/Shape';
+import { C_Line } from '../../engine/components/Line';
 import { Entity } from '../../engine/entities';
 import { Scene } from '../../engine/systems/scene';
 import type { Loophole_EntityWithID, Loophole_ExtendedEntityType } from '../externalLevelSchema';
@@ -167,19 +168,47 @@ export class E_Tile extends Entity {
     }
 }
 
+const AXIS_LENGTH = 5;
+
 export class GridScene extends Scene {
     #prevChildrenCount: number = 0;
+    #lines: Entity[] = [];
 
     override create() {
+        const axisStyle = {
+            fillStyle: '#888888',
+            strokeStyle: '#888888',
+            lineWidth: 1,
+        } as const;
+
+        this.#lines = [
+            new Entity('x-axis').addComponents(
+                new C_Line(
+                    'x-axis-line',
+                    { x: -AXIS_LENGTH * TILE_SIZE, y: 0 },
+                    { x: AXIS_LENGTH * TILE_SIZE, y: 0 },
+                    axisStyle,
+                ),
+            ),
+            new Entity('y-axis').addComponents(
+                new C_Line(
+                    'y-axis-line',
+                    { x: 0, y: -AXIS_LENGTH * TILE_SIZE },
+                    { x: 0, y: AXIS_LENGTH * TILE_SIZE },
+                    axisStyle,
+                ),
+            ),
+        ];
+
         this.addEntities(
+            ...this.#lines,
             new Entity('origin')
                 .addComponents(
                     new C_Shape('origin', 'ELLIPSE', {
                         fillStyle: 'white',
                     }),
                 )
-                .setScale(12)
-                .setZIndex(100),
+                .setScale(12),
         );
     }
 
@@ -187,6 +216,15 @@ export class GridScene extends Scene {
         if (this.#prevChildrenCount !== this.rootEntity?.children.length) {
             this.#prevChildrenCount = this.rootEntity?.children.length ?? 0;
         }
+
+        this.#lines[0].setScale({
+            x: this.#lines[0].scale.x,
+            y: 1 / (window.engine?.camera.zoom ?? 1),
+        });
+        this.#lines[1].setScale({
+            x: 1 / (window.engine?.camera.zoom ?? 1),
+            y: this.#lines[1].scale.y,
+        });
 
         return false;
     }
