@@ -52,8 +52,6 @@ class E_TileCursor extends Entity {
     #targetRotation: number | null = null;
     #active: boolean = false;
 
-    // Drag-to-place state
-    #isDragging: boolean = false;
     #dragStartTilePosition: Position | null = null;
     #placedTileDuringDrag: Set<string> = new Set();
     #dragPositionType: 'CELL' | 'EDGE' | null = null;
@@ -88,13 +86,15 @@ class E_TileCursor extends Entity {
             brushEntityFlipDirection,
             setBrushEntityFlipDirection,
             setSelectedTiles,
-            isDraggingTiles,
+            isMovingTiles,
+            isDraggingToPlace,
+            setIsDraggingToPlace,
         } = getAppStore();
         if (
             this.#editor.pointerState.onScreen &&
             !multiSelectIsActive(this.#editor) &&
             !cameraDragIsActive(this.#editor) &&
-            !isDraggingTiles &&
+            !isMovingTiles &&
             brushEntityType
         ) {
             const {
@@ -181,10 +181,8 @@ class E_TileCursor extends Entity {
             const leftButton = this.#editor.getPointerButton(PointerButton.LEFT);
             const rightButton = this.#editor.getPointerButton(PointerButton.RIGHT);
 
-            // Handle left click/drag for placing tiles
-            if (leftButton.pressed && !this.#isDragging) {
-                // Start dragging
-                this.#isDragging = true;
+            if (leftButton.pressed && !isDraggingToPlace) {
+                setIsDraggingToPlace(true);
                 this.#dragStartTilePosition = { ...tilePosition };
                 this.#placedTileDuringDrag.clear();
                 this.#dragPositionType = positionType;
@@ -202,7 +200,7 @@ class E_TileCursor extends Entity {
                 );
                 setSelectedTiles(tiles);
                 this.#placedTileDuringDrag.add(this.#getTileKey(tilePosition, edgeAlignment));
-            } else if (leftButton.down && this.#isDragging && this.#dragStartTilePosition) {
+            } else if (leftButton.down && isDraggingToPlace && this.#dragStartTilePosition) {
                 // Continue dragging - place tiles along the line
                 this.#handleDragPlacement(
                     tilePosition,
@@ -210,14 +208,14 @@ class E_TileCursor extends Entity {
                     brushEntityRotation,
                     brushEntityFlipDirection,
                 );
-            } else if (leftButton.released && this.#isDragging) {
+            } else if (leftButton.released && isDraggingToPlace) {
                 // End dragging
-                this.#isDragging = false;
+                setIsDraggingToPlace(false);
                 this.#dragStartTilePosition = null;
                 this.#placedTileDuringDrag.clear();
                 this.#dragPositionType = null;
                 this.#dragEdgeAlignment = null;
-            } else if (leftButton.clicked && !this.#isDragging) {
+            } else if (leftButton.clicked && !isDraggingToPlace) {
                 // Single click (short click with minimal movement)
                 const tiles = this.#editor.placeTile(
                     tilePosition,
@@ -251,7 +249,9 @@ class E_TileCursor extends Entity {
 
         this.#positionLerp.target = this.#targetPosition ?? this.position;
         this.#tileOpacityLerp.target = this.#active ? 0.5 : 0;
-        this.#tileRotationLerp.target = this.#targetRotation ?? this.rotation;
+        if (!isDraggingToPlace) {
+            this.#tileRotationLerp.target = this.#targetRotation ?? this.rotation;
+        }
 
         return updated;
     }
@@ -363,14 +363,14 @@ class E_SelectionCursor extends Entity {
         let updated = super.update(deltaTime);
         const pointerPosition = { ...this.#editor.pointerState.worldPosition };
 
-        const { brushEntityType, setSelectedTiles, isDraggingTiles } = getAppStore();
+        const { brushEntityType, setSelectedTiles, isMovingTiles } = getAppStore();
         const leftButtonState = this.#editor.getPointerButton(PointerButton.LEFT);
-        if (leftButtonState.pressed && !isDraggingTiles) {
+        if (leftButtonState.pressed && !isMovingTiles) {
             this.#selectAllClickPosition = pointerPosition;
         } else if (
             leftButtonState.released ||
             !this.#editor.pointerState.onScreen ||
-            isDraggingTiles
+            isMovingTiles
         ) {
             this.#selectAllClickPosition = null;
         }
@@ -378,7 +378,7 @@ class E_SelectionCursor extends Entity {
         if (
             (multiSelectIsActive(this.#editor) || !brushEntityType) &&
             !cameraDragIsActive(this.#editor) &&
-            !isDraggingTiles
+            !isMovingTiles
         ) {
             if (leftButtonState.clicked) {
                 setSelectedTiles([]);
@@ -468,7 +468,7 @@ class E_DragCursor extends Entity {
 
     override update(deltaTime: number): boolean {
         const updated = super.update(deltaTime);
-        const { selectedTiles, setSelectedTiles, brushEntityType, setIsDraggingTiles } =
+        const { selectedTiles, setSelectedTiles, brushEntityType, setIsMovingTiles } =
             getAppStore();
         const selectedTileArray = Object.values(selectedTiles);
         const hasSelection = selectedTileArray.length > 0;
@@ -496,7 +496,7 @@ class E_DragCursor extends Entity {
                 selectedTileArray.forEach((tile) => {
                     this.#originalEntities.set(tile.entity.tID, { ...tile.entity });
                 });
-                setIsDraggingTiles(true);
+                setIsMovingTiles(true);
                 this.#editor.capturePointerButtonClick(PointerButton.LEFT);
             }
 
@@ -518,14 +518,14 @@ class E_DragCursor extends Entity {
                     this.#commitDrag();
                     this.#isDragging = false;
                     this.#dragStartPosition = null;
-                    setIsDraggingTiles(false);
+                    setIsMovingTiles(false);
                 }
 
                 if (this.#editor.getKey('Escape').pressed) {
                     this.#cancelDrag(selectedTileArray);
                     this.#isDragging = false;
                     this.#dragStartPosition = null;
-                    setIsDraggingTiles(false);
+                    setIsMovingTiles(false);
                 }
             }
 

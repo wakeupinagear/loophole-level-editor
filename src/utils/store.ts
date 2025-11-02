@@ -37,8 +37,10 @@ interface AppStore {
     setSelectedTiles: (tiles: E_Tile[]) => void;
     deselectEntities: (tileIDs: string[]) => void;
 
-    isDraggingTiles: boolean;
-    setIsDraggingTiles: (isDragging: boolean) => void;
+    isMovingTiles: boolean;
+    setIsMovingTiles: (isMoving: boolean) => void;
+    isDraggingToPlace: boolean;
+    setIsDraggingToPlace: (isDraggingToPlace: boolean) => void;
 
     lockedLayers: Partial<Record<Loophole_ExtendedEntityType, boolean>>;
     setLockedLayer: (layer: Loophole_ExtendedEntityType, locked: boolean) => void;
@@ -122,8 +124,10 @@ export const useAppStore = create<AppStore>()(
                         return { selectedTiles: newSelectedTiles };
                     }),
 
-                isDraggingTiles: false,
-                setIsDraggingTiles: (isDragging) => set({ isDraggingTiles: isDragging }),
+                isMovingTiles: false,
+                setIsMovingTiles: (isMoving) => set({ isMovingTiles: isMoving }),
+                isDraggingToPlace: false,
+                setIsDraggingToPlace: (isDraggingToPlace) => set({ isDraggingToPlace: isDraggingToPlace }),
 
                 lockedLayers: {},
                 setLockedLayer: (layer, locked) =>
