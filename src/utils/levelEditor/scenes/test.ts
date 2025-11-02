@@ -13,7 +13,7 @@ export class TestScene extends Scene {
         this.#rotatingBox = this.#generateNestedBoxes(NUM_BOXES, [{ x: 0, y: 0 }])
             .setScale({ x: 200, y: 200 })
             .rotate(45)
-            .addChildren(
+            .addEntities(
                 new Entity('Top Left', new C_Shape('Dot', 'ELLIPSE', { fillStyle: 'yellow' }))
                     .setScale({ x: 0.25, y: 0.25 })
                     .setPosition({ x: -0.5, y: -0.5 }),
@@ -82,7 +82,7 @@ export class TestScene extends Scene {
             if (!currEntity) {
                 root = entity;
             } else {
-                currEntity.addChildren(entity);
+                currEntity.addEntities(entity);
             }
 
             currEntity = entity;

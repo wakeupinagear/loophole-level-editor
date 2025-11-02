@@ -33,7 +33,6 @@ import { E_Tile } from './grid';
 import { C_PointerTarget } from '@/utils/engine/components/PointerTarget';
 import { v4 } from 'uuid';
 
-const HANDLE_SIZE = 20;
 const HANDLE_COLOR = 'yellow';
 const HANDLE_HOVER_COLOR = 'red';
 
@@ -348,7 +347,7 @@ class E_SelectionCursor extends Entity {
         this.#editor = editor;
         this.#shapeComp = new C_Shape('rect', 'RECT', {
             fillStyle: 'blue',
-        }).setOrigin({ x: 0, y: 0 });
+        }).setOrigin(0);
         this.#opacityLerp = new C_Lerp<number>({
             get: (() => this.#shapeComp.style.globalAlpha ?? 0).bind(this),
             set: ((value: number) => {
@@ -356,7 +355,8 @@ class E_SelectionCursor extends Entity {
             }).bind(this),
             speed: 5,
         });
-        this.addComponents(this.#shapeComp, this.#opacityLerp);
+
+        this.addComponents(this.#shapeComp, this.#opacityLerp).setScale(0);
     }
 
     override update(deltaTime: number): boolean {
@@ -460,8 +460,10 @@ class E_DragCursor extends Entity {
             this.#pointerTarget,
             this.#opacityLerp,
             this.#positionLerp,
-        );
-        this.setZIndex(200);
+        )
+            .setZIndex(200)
+            .setScale(20)
+            .setScaleToCamera(true);
     }
 
     override update(deltaTime: number): boolean {
@@ -550,7 +552,6 @@ class E_DragCursor extends Entity {
             this.#pointerTarget.isPointerHovered || this.#isDragging
                 ? HANDLE_HOVER_COLOR
                 : HANDLE_COLOR;
-        this.setScale(HANDLE_SIZE / this.#editor.camera.zoom);
 
         return updated;
     }

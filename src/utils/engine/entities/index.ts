@@ -1,7 +1,13 @@
 import type { Component } from '../components';
 import { RENDER_CMD, RenderCommand, type RenderCommandStream } from '../systems/render';
-import type { Position, RecursiveArray, Renderable } from '../types';
+import type { Camera, Position, RecursiveArray, Renderable } from '../types';
 import { C_Transform } from '../components/transforms';
+import type { Scene } from '../systems/scene';
+
+interface ScaleToCamera {
+    x: boolean;
+    y: boolean;
+}
 
 export class Entity implements Renderable {
     protected static _nextId: number = 1;
@@ -15,6 +21,7 @@ export class Entity implements Renderable {
 
     protected _parent: Entity | null = null;
     protected _transform: C_Transform;
+    protected _scaleToCamera: ScaleToCamera = { x: false, y: false };
 
     protected _children: Entity[] = [];
     #childrenZIndexDirty: boolean = false;
@@ -123,7 +130,7 @@ export class Entity implements Renderable {
         this.#destroy();
     }
 
-    addChildren(...entities: Entity[]): this {
+    addEntities(...entities: Entity[]): this {
         for (const entity of entities) {
             this._children.push(entity);
             entity.parent = this;
@@ -194,6 +201,29 @@ export class Entity implements Renderable {
         return this;
     }
 
+    setScaleToCamera(scaleToCamera: boolean | ScaleToCamera): this {
+        this._scaleToCamera =
+            typeof scaleToCamera === 'boolean'
+                ? { x: scaleToCamera, y: scaleToCamera }
+                : scaleToCamera;
+
+        return this;
+    }
+
+    setParent(parent: Entity | Scene | null): this {
+        if (this._parent) {
+            this._parent.removeChild(this);
+        }
+
+        if (parent) {
+            parent.addEntities(this);
+        } else {
+            this._parent = null;
+        }
+
+        return this;
+    }
+
     addComponents(...components: Component[]): this {
         for (const component of components) {
             this._components.push(component);
@@ -216,7 +246,7 @@ export class Entity implements Renderable {
         return this._components.find((c) => c.name === typeString) ?? null;
     }
 
-    queueRenderCommands(out: RenderCommandStream): void {
+    queueRenderCommands(out: RenderCommandStream, camera: Camera): void {
         if (!this._enabled || this._children.length + this._components.length === 0) {
             return;
         }
@@ -230,6 +260,14 @@ export class Entity implements Renderable {
             this.#componentsZIndexDirty = false;
         }
 
+        const shouldScaleToCamera = this._scaleToCamera.x || this._scaleToCamera.y;
+        if (shouldScaleToCamera) {
+            this.scaleBy({
+                x: this._scaleToCamera.x ? 1 / camera.zoom : 1,
+                y: this._scaleToCamera.y ? 1 / camera.zoom : 1,
+            });
+        }
+
         out.push(
             new RenderCommand(RENDER_CMD.PUSH_TRANSFORM, null, {
                 t: this._transform.localMatrix,
@@ -239,25 +277,32 @@ export class Entity implements Renderable {
         // Negative z-index children first
         for (const child of this._children) {
             if (child.zIndex < 0 && child.enabled) {
-                child.queueRenderCommands(out);
+                child.queueRenderCommands(out, camera);
             }
         }
 
         // Then components
         for (const component of this._components) {
             if (component.enabled) {
-                component.queueRenderCommands(out);
+                component.queueRenderCommands(out, camera);
             }
         }
 
         // Then non-negative z-index children
         for (const child of this._children) {
             if (child.zIndex >= 0 && child.enabled) {
-                child.queueRenderCommands(out);
+                child.queueRenderCommands(out, camera);
             }
         }
 
         out.push(new RenderCommand(RENDER_CMD.POP_TRANSFORM, null));
+
+        if (shouldScaleToCamera) {
+            this.scaleBy({
+                x: this._scaleToCamera.x ? camera.zoom : 1,
+                y: this._scaleToCamera.y ? camera.zoom : 1,
+            });
+        }
     }
 
     #destroy(): void {

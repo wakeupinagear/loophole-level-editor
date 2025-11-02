@@ -1,5 +1,6 @@
 import { System } from '.';
 import type { Entity } from '../entities';
+import type { Camera } from '../types';
 
 export interface RenderStyle {
     fillStyle?: string | CanvasGradient | CanvasPattern;
@@ -127,9 +128,9 @@ export type RenderCommandStream = RenderCommand[];
 export class RenderSystem extends System {
     destroy(): void {}
 
-    render(ctx: CanvasRenderingContext2D, rootEntity: Entity) {
+    render(ctx: CanvasRenderingContext2D, rootEntity: Entity, camera: Camera) {
         const stream: RenderCommandStream = [];
-        rootEntity.queueRenderCommands(stream);
+        rootEntity.queueRenderCommands(stream, camera);
 
         this.#applyStyle(ctx, DEFAULT_RENDER_STYLE);
 

@@ -1,6 +1,6 @@
 import { Entity } from './entities';
 import { RenderSystem } from './systems/render';
-import { type Position } from './types';
+import { type Camera, type CameraData, type Position } from './types';
 import type { AvailableScenes, Scene, SceneIdentifier } from './systems/scene';
 import { SceneSystem } from './systems/scene';
 import {
@@ -44,16 +44,11 @@ type BrowserEventHandler<T extends BrowserEvent> = (
     data: BrowserEventMap[T],
 ) => void | boolean;
 
-interface CameraState {
-    zoom?: number;
-    rotation?: number;
-    position?: Position;
-}
-
-const DEFAULT_CAMERA_OPTIONS: Required<CameraState> = {
+const DEFAULT_CAMERA_OPTIONS: Camera = {
     zoom: 1,
     rotation: 0,
     position: { x: 0, y: 0 },
+    dirty: false,
 };
 
 interface KeyCapture {
@@ -73,13 +68,15 @@ export interface EngineOptions {
     scenes?: AvailableScenes;
     startScenes?: string[];
 
-    cameraStart?: CameraState;
+    cameraStart?: CameraData;
     cameraDrag?: boolean;
     cameraDragButtons?: PointerButton[];
 
     images?: Record<string, string | HTMLImageElement>;
 
     keysToCapture?: KeyCapture[];
+
+    asyncImageLoading?: boolean;
 }
 
 const DEFAULT_ENGINE_OPTIONS: Required<EngineOptions> = {
@@ -91,13 +88,19 @@ const DEFAULT_ENGINE_OPTIONS: Required<EngineOptions> = {
     scenes: {},
     startScenes: [],
 
-    cameraStart: { ...DEFAULT_CAMERA_OPTIONS },
+    cameraStart: {
+        position: DEFAULT_CAMERA_OPTIONS.position,
+        rotation: DEFAULT_CAMERA_OPTIONS.rotation,
+        zoom: DEFAULT_CAMERA_OPTIONS.zoom,
+    },
     cameraDrag: false,
     cameraDragButtons: [PointerButton.MIDDLE, PointerButton.RIGHT],
 
     images: {},
 
     keysToCapture: [],
+
+    asyncImageLoading: true,
 };
 
 export class Engine {
@@ -107,7 +110,7 @@ export class Engine {
     protected _canvas: HTMLCanvasElement | null = null;
     protected _options: Required<EngineOptions> = { ...DEFAULT_ENGINE_OPTIONS };
 
-    protected _camera: Required<CameraState>;
+    protected _camera: Required<Camera>;
     protected _rootEntity: Entity;
 
     protected _worldToScreenMatrix: DOMMatrix | null = null;
@@ -135,7 +138,8 @@ export class Engine {
     #browserEventHandlers: Partial<Record<BrowserEvent, BrowserEventHandler<BrowserEvent>[]>> = {};
 
     constructor(options: EngineOptions = {}) {
-        window.engine = this;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        window.engine = this as unknown as any;
 
         this._rootEntity = new Entity('root');
         this._renderSystem = new RenderSystem(this);
@@ -210,12 +214,12 @@ export class Engine {
         this.#applyOptions(newOptions);
     }
 
-    get camera(): Readonly<Required<CameraState>> {
+    get camera(): Readonly<Camera> {
         return this._camera;
     }
 
-    set camera(newCamera: CameraState) {
-        this._camera = { ...DEFAULT_CAMERA_OPTIONS, ...newCamera };
+    set camera(newCamera: Partial<CameraData>) {
+        this._camera = { ...DEFAULT_CAMERA_OPTIONS, ...newCamera, dirty: true };
         this.#worldToScreenMatrixDirty = true;
     }
 
@@ -330,6 +334,7 @@ export class Engine {
             this._camera.position = position;
             this.#worldToScreenMatrixDirty = true;
             this.#forceRender = true;
+            this._camera.dirty = true;
         }
     }
 
@@ -339,6 +344,7 @@ export class Engine {
             this.#clampCameraZoom();
             this.#worldToScreenMatrixDirty = true;
             this.#forceRender = true;
+            this._camera.dirty = true;
         }
     }
 
@@ -347,6 +353,7 @@ export class Engine {
         this.#clampCameraZoom();
         this.#worldToScreenMatrixDirty = true;
         this.#forceRender = true;
+        this._camera.dirty = true;
     }
 
     setCameraRotation(rotation: number): void {
@@ -354,6 +361,7 @@ export class Engine {
             this._camera.rotation = rotation;
             this.#worldToScreenMatrixDirty = true;
             this.#forceRender = true;
+            this._camera.dirty = true;
         }
     }
 
@@ -445,7 +453,8 @@ export class Engine {
         ctx.fillRect(0, 0, canvasWidth, canvasHeight);
         ctx.translate(canvasWidth / 2, canvasHeight / 2);
 
-        this._renderSystem.render(ctx, this._rootEntity);
+        this._renderSystem.render(ctx, this._rootEntity, this._camera);
+        this._camera.dirty = false;
 
         this.#renderTime = performance.now() - startTime;
     }
@@ -468,7 +477,16 @@ export class Engine {
         const sceneUpdated = this._sceneSystem.update(deltaTime);
         const imagesUpdated = this._imageSystem.update();
         const engineUpdated = this.#update(deltaTime);
-        if (sceneUpdated || engineUpdated || imagesUpdated || this.#forceRender) {
+
+        const loadingImages = this._imageSystem.getLoadingImages();
+        if (
+            (sceneUpdated ||
+                engineUpdated ||
+                imagesUpdated ||
+                this._camera.dirty ||
+                this.#forceRender) &&
+            (this.options.asyncImageLoading || loadingImages.length === 0)
+        ) {
             this.#render();
             this.#forceRender = false;
         }

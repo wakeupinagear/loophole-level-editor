@@ -1,5 +1,5 @@
 import type { Entity } from '../entities';
-import type { Position, Renderable } from '../types';
+import type { Camera, Position, Renderable } from '../types';
 import type { RenderCommandStream, RenderStyle } from '../systems/render';
 
 export abstract class Component implements Renderable {
@@ -55,7 +55,7 @@ export abstract class Component implements Renderable {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    queueRenderCommands(_out: RenderCommandStream) {}
+    queueRenderCommands(_out: RenderCommandStream, _camera: Camera): void {}
 
     setZIndex(zIndex: number): this {
         if (this._zIndex !== zIndex) {
@@ -100,8 +100,8 @@ export abstract class C_Drawable extends Component {
         return this._origin;
     }
 
-    setOrigin(origin: Position): this {
-        this._origin = origin;
+    setOrigin(origin: number | Position): this {
+        this._origin = typeof origin === 'number' ? { x: origin, y: origin } : origin;
         return this;
     }
 
@@ -109,7 +109,7 @@ export abstract class C_Drawable extends Component {
         return this._scale;
     }
 
-    setScale(scale: Position | number): this {
+    setScale(scale: number | Position): this {
         this._scale = typeof scale === 'number' ? { x: scale, y: scale } : scale;
         return this;
     }

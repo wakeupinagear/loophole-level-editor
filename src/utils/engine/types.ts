@@ -5,10 +5,6 @@ export type Position = {
     y: number;
 };
 
-export interface Renderable {
-    queueRenderCommands(out: RenderCommandStream): void;
-}
-
 export type RecursiveArray<T> = Array<RecursiveArray<T> | T>;
 
 export interface ButtonState {
@@ -17,4 +13,19 @@ export interface ButtonState {
     pressed: boolean;
     released: boolean;
     downTime: number;
+}
+
+export interface CameraData {
+    zoom: number;
+    rotation: number;
+    position: Position;
+}
+export interface CameraMetadata {
+    dirty: boolean;
+}
+
+export interface Camera extends CameraData, CameraMetadata {}
+
+export interface Renderable {
+    queueRenderCommands(out: RenderCommandStream, camera: Camera): void;
 }

@@ -41,6 +41,8 @@ export class E_Tile extends Entity {
     #highlightShape: C_Shape;
     #opacityLerp: C_Lerp<number>;
 
+    #guyImage: C_Image | null = null;
+
     constructor(editor: LevelEditor, entity: Loophole_EntityWithID) {
         super('tile');
 
@@ -67,7 +69,7 @@ export class E_Tile extends Entity {
             this.#opacityLerp,
         );
 
-        this.addChildren(this.#highlightEntity);
+        this.addEntities(this.#highlightEntity);
     }
 
     get entity(): Loophole_EntityWithID {
@@ -85,6 +87,17 @@ export class E_Tile extends Entity {
 
     set isEntrance(isEntrance: boolean) {
         this.#isEntrance = isEntrance;
+        if (isEntrance) {
+            if (!this.#guyImage) {
+                this.#guyImage = new C_Image('guy', 'Guy');
+                this.addComponents(this.#guyImage);
+            }
+        } else {
+            if (this.#guyImage) {
+                this.removeComponent(this.#guyImage);
+                this.#guyImage = null;
+            }
+        }
     }
 
     get initialized(): boolean {
@@ -171,9 +184,6 @@ export class E_Tile extends Entity {
 const AXIS_LENGTH = 5;
 
 export class GridScene extends Scene {
-    #prevChildrenCount: number = 0;
-    #lines: Entity[] = [];
-
     override create() {
         const axisStyle = {
             fillStyle: '#888888',
@@ -181,51 +191,27 @@ export class GridScene extends Scene {
             lineWidth: 1,
         } as const;
 
-        this.#lines = [
-            new Entity('x-axis').addComponents(
-                new C_Line(
-                    'x-axis-line',
-                    { x: -AXIS_LENGTH * TILE_SIZE, y: 0 },
-                    { x: AXIS_LENGTH * TILE_SIZE, y: 0 },
-                    axisStyle,
-                ),
-            ),
-            new Entity('y-axis').addComponents(
-                new C_Line(
-                    'y-axis-line',
-                    { x: 0, y: -AXIS_LENGTH * TILE_SIZE },
-                    { x: 0, y: AXIS_LENGTH * TILE_SIZE },
-                    axisStyle,
-                ),
-            ),
-        ];
-
-        this.addEntities(
-            ...this.#lines,
-            new Entity('origin')
+        [
+            new Entity('x-axis')
                 .addComponents(
-                    new C_Shape('origin', 'ELLIPSE', {
-                        fillStyle: 'white',
-                    }),
+                    new C_Line(
+                        'x-axis-line',
+                        { x: -AXIS_LENGTH * TILE_SIZE, y: 0 },
+                        { x: AXIS_LENGTH * TILE_SIZE, y: 0 },
+                        axisStyle,
+                    ),
                 )
-                .setScale(12),
-        );
-    }
-
-    override update() {
-        if (this.#prevChildrenCount !== this.rootEntity?.children.length) {
-            this.#prevChildrenCount = this.rootEntity?.children.length ?? 0;
-        }
-
-        this.#lines[0].setScale({
-            x: this.#lines[0].scale.x,
-            y: 1 / (window.engine?.camera.zoom ?? 1),
-        });
-        this.#lines[1].setScale({
-            x: 1 / (window.engine?.camera.zoom ?? 1),
-            y: this.#lines[1].scale.y,
-        });
-
-        return false;
+                .setScaleToCamera({ x: false, y: true }),
+            new Entity('y-axis')
+                .addComponents(
+                    new C_Line(
+                        'y-axis-line',
+                        { x: 0, y: -AXIS_LENGTH * TILE_SIZE },
+                        { x: 0, y: AXIS_LENGTH * TILE_SIZE },
+                        axisStyle,
+                    ),
+                )
+                .setScaleToCamera({ x: true, y: false }),
+        ].forEach((line) => line.setParent(this));
     }
 }

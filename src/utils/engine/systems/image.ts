@@ -9,6 +9,8 @@ export interface LoadedImage {
 export class ImageSystem extends System {
     #loadingImages: Set<string> = new Set();
     #loadedImages: Record<string, LoadedImage> = {};
+    #pathsToLoadedImages: Record<string, string> = {};
+
     #requestedImages: Set<string> = new Set();
     #requestedImageJustLoaded: boolean = false;
 
@@ -47,6 +49,7 @@ export class ImageSystem extends System {
                     image,
                     owned: true,
                 };
+                this.#pathsToLoadedImages[src] = name;
                 this.#loadingImages.delete(name);
                 if (this.#requestedImages.has(name)) {
                     this.#requestedImages.delete(name);
@@ -67,12 +70,22 @@ export class ImageSystem extends System {
     }
 
     public getImage(name: string): LoadedImage | null {
-        const image = this.#loadedImages[name] || null;
-        if (!image) {
-            this.#requestedImages.add(name);
+        const imageByName = this.#loadedImages[name];
+        if (imageByName) {
+            return imageByName;
         }
 
-        return image;
+        const path = this.#pathsToLoadedImages[name];
+        if (path) {
+            const imageByPath = this.#loadedImages[path];
+            if (imageByPath) {
+                return imageByPath;
+            }
+        }
+
+        this.#requestedImages.add(name);
+
+        return null;
     }
 
     public getLoadingImages(): string[] {

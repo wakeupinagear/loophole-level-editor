@@ -86,6 +86,7 @@ export class LevelEditor extends Engine {
                     }),
                     {},
                 ),
+                Guy: 'pixel/guy.png',
                 ...options.images,
             },
         });

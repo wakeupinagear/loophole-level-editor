@@ -48,7 +48,7 @@ export class Scene {
     }
 
     addEntities(...entities: Entity[]): void {
-        this.#rootEntity?.addChildren(...entities);
+        this.#rootEntity?.addEntities(...entities);
     }
 }
 
@@ -125,7 +125,7 @@ export class SceneSystem extends System {
             throw new Error(`Scene root entity for ${sceneObject.name} not found`);
         }
 
-        rootEntity.addChildren(...entities);
+        rootEntity.addEntities(...entities);
     }
 
     #findScene(scene: SceneIdentifier): Scene | null {
@@ -149,7 +149,7 @@ export class SceneSystem extends System {
         this.#activeScenesByName.set(scene.name, scene);
 
         const rootEntity = new Entity(`scene-root-${scene.name}-${scene.id}`);
-        this.#worldRootEntity.addChildren(rootEntity);
+        this.#worldRootEntity.addEntities(rootEntity);
         this.#sceneRootEntities.set(scene.id, rootEntity);
         if (!this.#defaultScene) {
             this.#defaultScene = scene;
