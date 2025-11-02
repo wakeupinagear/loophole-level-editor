@@ -1,6 +1,15 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+@font-face {
+    font-family: 'Lexend Deca';
+    src: url('./fonts/LexendDeca.ttf');
+}
+
+body {
+    font-family: 'Lexend Deca', sans-serif;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 .pixelated-image {
@@ -8,5 +17,5 @@
 }
 
 h2 {
-    @apply font-bold text-xl;
+    @apply font-bold text-lg;
 }
