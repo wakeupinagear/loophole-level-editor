@@ -168,22 +168,32 @@ export class RenderSystem extends System {
                         const { x, y, w, h, rx = 1, ry = 1, gx = 1, gy = 1 } = data;
                         this.#applyStyle(ctx, style);
 
-                        // Draw strokes as a single path to avoid overlapping
-                        if (style.strokeStyle && style.lineWidth && style.lineWidth > 0) {
-                            for (let i = 0; i < rx; i++) {
-                                for (let j = 0; j < ry; j++) {
-                                    ctx.strokeRect(x + i * gx, y + j * gy, w, h);
-                                }
-                            }
-                        }
-
-                        // Draw fills first
+                        // Fill first so stroke remains visible on top
                         if (style.fillStyle) {
                             for (let i = 0; i < rx; i++) {
                                 for (let j = 0; j < ry; j++) {
                                     ctx.fillRect(x + i * gx, y + j * gy, w, h);
                                 }
                             }
+                        }
+
+                        // Draw strokes without scaling line width with transform
+                        if (style.strokeStyle && style.lineWidth && style.lineWidth > 0) {
+                            const m = ctx.getTransform();
+                            const scaleX = Math.hypot(m.a, m.b);
+                            const scaleY = Math.hypot(m.c, m.d);
+                            const denom = Math.max(scaleX || 1, scaleY || 1) || 1;
+                            const adjusted = style.lineWidth / denom;
+                            const prevWidth = ctx.lineWidth;
+                            ctx.lineWidth = adjusted > 0 ? adjusted : 1;
+
+                            for (let i = 0; i < rx; i++) {
+                                for (let j = 0; j < ry; j++) {
+                                    ctx.strokeRect(x + i * gx, y + j * gy, w, h);
+                                }
+                            }
+
+                            ctx.lineWidth = prevWidth;
                         }
                     }
 
@@ -214,7 +224,18 @@ export class RenderSystem extends System {
                                     ctx.fill();
                                 }
                                 if (style.strokeStyle) {
+                                    const m = ctx.getTransform();
+                                    const scaleX = Math.hypot(m.a, m.b);
+                                    const scaleY = Math.hypot(m.c, m.d);
+                                    const denom = Math.max(scaleX || 1, scaleY || 1) || 1;
+                                    const adjusted =
+                                        (style.lineWidth && style.lineWidth > 0
+                                            ? style.lineWidth
+                                            : 1) / denom;
+                                    const prevWidth = ctx.lineWidth;
+                                    ctx.lineWidth = adjusted > 0 ? adjusted : 1;
                                     ctx.stroke();
+                                    ctx.lineWidth = prevWidth;
                                 }
                                 ctx.closePath();
                             }

@@ -68,7 +68,7 @@ export class LevelEditor extends Engine {
         super({
             scenes: SCENES,
             startScenes: [GridScene.name, UIScene.name],
-            minZoom: 0.5,
+            minZoom: 0.1,
             maxZoom: 2,
             cameraDrag: true,
             clearColor: '#1e2124',

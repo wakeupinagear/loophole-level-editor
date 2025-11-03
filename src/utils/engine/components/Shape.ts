@@ -19,8 +19,8 @@ export class C_Shape extends C_Drawable {
         name: string,
         shape: Shape,
         style?: RenderStyle,
-        repeat?: Position,
-        gap?: Position,
+        repeat?: number | Position,
+        gap?: number | Position,
     ) {
         super(
             name,
@@ -30,8 +30,16 @@ export class C_Shape extends C_Drawable {
         );
 
         this.#shape = shape;
-        this.#repeat = repeat ?? null;
-        this.#gap = gap ?? null;
+        if (repeat !== undefined) {
+            this.#repeat = typeof repeat === 'number' ? { x: repeat, y: repeat } : repeat;
+        } else {
+            this.#repeat = null;
+        }
+        if (gap !== undefined) {
+            this.#gap = typeof gap === 'number' ? { x: gap, y: gap } : gap;
+        } else {
+            this.#gap = null;
+        }
     }
 
     get repeat(): Position | null {
