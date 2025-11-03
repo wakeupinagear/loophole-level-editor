@@ -11,12 +11,12 @@ import { Entity } from '../../engine/entities';
 import { Scene } from '../../engine/systems/scene';
 import { C_Image } from '@/utils/engine/components/Image';
 import { getAppStore } from '@/utils/store';
-import type {
-    Loophole_EdgeAlignment,
-    Loophole_EntityWithID,
-    Loophole_ExtendedEntityType,
-    Loophole_Int2,
-    Loophole_Rotation,
+import {
+    type Loophole_EdgeAlignment,
+    type Loophole_EntityWithID,
+    type Loophole_ExtendedEntityType,
+    type Loophole_Int2,
+    type Loophole_Rotation,
 } from '../externalLevelSchema';
 import { PointerButton } from '@/utils/engine/systems/pointer';
 import type { Position } from '@/utils/engine/types';
@@ -112,14 +112,8 @@ class E_TileCursor extends Entity {
                     window.engine.pointerState.worldPosition,
                     brushEntityType,
                 );
-
-            // Calculate cursor position for visual display
-            let cursorPosition: Position = { x: 0, y: 0 };
+            const cursorPosition = tilePosition;
             if (positionType === 'CELL') {
-                cursorPosition = {
-                    x: Math.round(window.engine.pointerState.worldPosition.x / TILE_SIZE),
-                    y: Math.round(window.engine.pointerState.worldPosition.y / TILE_SIZE),
-                };
                 this.#targetRotation = 0;
             } else {
                 const cellX = Math.round(window.engine.pointerState.worldPosition.x / TILE_SIZE);
@@ -128,16 +122,8 @@ class E_TileCursor extends Entity {
                 const localY = window.engine.pointerState.worldPosition.y - cellY * TILE_SIZE;
 
                 if (Math.abs(localX) > Math.abs(localY)) {
-                    cursorPosition = {
-                        x: localX > 0 ? cellX + 0.5 : cellX - 0.5,
-                        y: cellY,
-                    };
                     this.#targetRotation = loopholeRotationToDegrees('RIGHT');
                 } else {
-                    cursorPosition = {
-                        x: cellX,
-                        y: localY > 0 ? cellY + 0.5 : cellY - 0.5,
-                    };
                     this.#targetRotation = loopholeRotationToDegrees('UP');
                 }
             }

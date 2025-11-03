@@ -26,8 +26,6 @@ import type { Position } from './engine/types';
 export const TILE_CENTER_FRACTION = 0.7;
 export const TILE_SIZE = 100;
 
-export const MAX_ENTITY_COUNT = 4000;
-
 export type LoopholePositionType = 'CELL' | 'EDGE';
 
 const ENTITY_TYPE_DRAW_ORDER_LIST: Loophole_EntityType[] = [

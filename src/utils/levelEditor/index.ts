@@ -1,15 +1,18 @@
 import { Engine, type EngineOptions } from '../engine';
 import type { AvailableScenes } from '../engine/systems/scene';
-import type {
-    Loophole_EdgeAlignment,
-    Loophole_EntityType,
-    Loophole_EntityWithID,
-    Loophole_Exit,
-    Loophole_ExtendedEntityType,
-    Loophole_Int2,
-    Loophole_InternalLevel,
-    Loophole_Rotation,
-    WithID,
+import {
+    MAX_ENTITY_COUNT,
+    MAX_POSITION,
+    MIN_POSITION,
+    type Loophole_EdgeAlignment,
+    type Loophole_EntityType,
+    type Loophole_EntityWithID,
+    type Loophole_Exit,
+    type Loophole_ExtendedEntityType,
+    type Loophole_Int2,
+    type Loophole_InternalLevel,
+    type Loophole_Rotation,
+    type WithID,
 } from './externalLevelSchema';
 import { E_Tile, GridScene } from './scenes/grid';
 import { TestScene } from './scenes/test';
@@ -134,10 +137,8 @@ export class LevelEditor extends Engine {
         return this.#tiles;
     }
 
-    override _update() {
-        const updated = true;
-
-        return updated;
+    get tileCount(): number {
+        return Object.keys(this.#tiles).length;
     }
 
     calculateTilePositionFromWorld(
@@ -179,6 +180,8 @@ export class LevelEditor extends Engine {
             x: Math.floor(enginePosition.x),
             y: Math.floor(enginePosition.y),
         };
+        finalPosition.x = Math.max(MIN_POSITION.x, Math.min(MAX_POSITION.x, finalPosition.x));
+        finalPosition.y = Math.max(MIN_POSITION.y, Math.min(MAX_POSITION.y, finalPosition.y));
 
         return { position: finalPosition, edgeAlignment };
     }
@@ -214,6 +217,10 @@ export class LevelEditor extends Engine {
         flipDirection: boolean,
         hash?: string | null,
     ): E_Tile[] {
+        if (this.tileCount >= MAX_ENTITY_COUNT) {
+            return Array.from(Object.values(getAppStore().selectedTiles));
+        }
+
         const { createEntity, positionType, type } = ENTITY_METADATA[entityType];
         if (this.#isOverlappingCriticalTile(position, positionType)) {
             return [];
