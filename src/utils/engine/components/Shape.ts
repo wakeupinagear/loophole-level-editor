@@ -13,8 +13,15 @@ type Shape = 'RECT' | 'ELLIPSE';
 export class C_Shape extends C_Drawable {
     #shape: Shape;
     #repeat: Position | null;
+    #gap: Position | null;
 
-    constructor(name: string, shape: Shape, style?: RenderStyle, repeat?: Position) {
+    constructor(
+        name: string,
+        shape: Shape,
+        style?: RenderStyle,
+        repeat?: Position,
+        gap?: Position,
+    ) {
         super(
             name,
             shape === 'ELLIPSE' ? { x: 0, y: 0 } : { x: 0.5, y: 0.5 },
@@ -24,6 +31,7 @@ export class C_Shape extends C_Drawable {
 
         this.#shape = shape;
         this.#repeat = repeat ?? null;
+        this.#gap = gap ?? null;
     }
 
     get repeat(): Position | null {
@@ -32,6 +40,14 @@ export class C_Shape extends C_Drawable {
 
     set repeat(repeat: Position | null) {
         this.#repeat = repeat;
+    }
+
+    get gap(): Position | null {
+        return this.#gap;
+    }
+
+    set gap(gap: Position | null) {
+        this.#gap = gap;
     }
 
     override queueRenderCommands(out: RenderCommandStream): void {
@@ -50,6 +66,10 @@ export class C_Shape extends C_Drawable {
                 if (this.#repeat) {
                     data.rx = this.#repeat.x;
                     data.ry = this.#repeat.y;
+                    if (this.#gap) {
+                        data.gx = this.#gap.x;
+                        data.gy = this.#gap.y;
+                    }
                 }
 
                 out.push(new RenderCommand(RENDER_CMD.DRAW_RECT, this.style, data));
@@ -66,6 +86,10 @@ export class C_Shape extends C_Drawable {
                 if (this.#repeat) {
                     data.rx = this.#repeat.x;
                     data.ry = this.#repeat.y;
+                    if (this.#gap) {
+                        data.gx = this.#gap.x;
+                        data.gy = this.#gap.y;
+                    }
                 }
 
                 out.push(new RenderCommand(RENDER_CMD.DRAW_ELLIPSE, this.style, data));

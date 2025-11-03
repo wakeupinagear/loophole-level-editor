@@ -115,7 +115,6 @@ export class LevelEditor extends Engine {
         const entranceTile = this.#placeEntity(this.#level.entrance, false);
         entranceTile.variant = 'entrance';
 
-        console.log(this.#level.exitPosition.x, this.#level.exitPosition.y);
         this.#exitEntity = {
             entityType: 'EXIT',
             position: this.#level.exitPosition,

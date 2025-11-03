@@ -75,7 +75,7 @@ function MultiTileContent({ selectedTiles }: MultiTileContentProps) {
         <>
             <div className="flex gap-2 items-center">
                 <h2>{name}</h2>
-                {selectedTiles.length === 1 && primaryTile.isEntrance && (
+                {selectedTiles.length === 1 && primaryTile.variant === 'entrance' && (
                     <Badge
                         variant="destructive"
                         className="bg-blue-500 text-white dark:bg-blue-600"
@@ -83,7 +83,7 @@ function MultiTileContent({ selectedTiles }: MultiTileContentProps) {
                         Entrance
                     </Badge>
                 )}
-                {(multiple || !primaryTile.isEntrance) && (
+                {(multiple || primaryTile.variant === 'default') && (
                     <button
                         onClick={() =>
                             window.engine?.removeEntities(selectedTiles.map((t) => t.entity))

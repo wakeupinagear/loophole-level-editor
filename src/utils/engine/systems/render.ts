@@ -54,6 +54,8 @@ export type DrawDataShape = {
     h: number;
     rx?: number;
     ry?: number;
+    gx?: number;
+    gy?: number;
 };
 export type DrawDataImage = {
     x: number;
@@ -67,6 +69,8 @@ export type DrawDataImage = {
     sh?: number;
     rx?: number;
     ry?: number;
+    gx?: number;
+    gy?: number;
 };
 export type DrawDataText = {
     x: number;
@@ -160,23 +164,25 @@ export class RenderSystem extends System {
                         continue;
                     }
 
-                    const { x, y, w, h, rx = 1, ry = 1 } = data;
-                    this.#applyStyle(ctx, style);
+                    if (style.globalAlpha > 0) {
+                        const { x, y, w, h, rx = 1, ry = 1, gx = 1, gy = 1 } = data;
+                        this.#applyStyle(ctx, style);
 
-                    // Draw strokes as a single path to avoid overlapping
-                    if (style.strokeStyle && style.lineWidth && style.lineWidth > 0) {
-                        for (let i = 0; i < rx; i++) {
-                            for (let j = 0; j < ry; j++) {
-                                ctx.strokeRect(x + i, y + j, w, h);
+                        // Draw strokes as a single path to avoid overlapping
+                        if (style.strokeStyle && style.lineWidth && style.lineWidth > 0) {
+                            for (let i = 0; i < rx; i++) {
+                                for (let j = 0; j < ry; j++) {
+                                    ctx.strokeRect(x + i * gx, y + j * gy, w, h);
+                                }
                             }
                         }
-                    }
 
-                    // Draw fills first
-                    if (style.fillStyle) {
-                        for (let i = 0; i < rx; i++) {
-                            for (let j = 0; j < ry; j++) {
-                                ctx.fillRect(x + i, y + j, w, h);
+                        // Draw fills first
+                        if (style.fillStyle) {
+                            for (let i = 0; i < rx; i++) {
+                                for (let j = 0; j < ry; j++) {
+                                    ctx.fillRect(x + i * gx, y + j * gy, w, h);
+                                }
                             }
                         }
                     }
@@ -189,17 +195,30 @@ export class RenderSystem extends System {
                     }
 
                     if (style.globalAlpha > 0) {
-                        const { x, y, w, h } = data;
+                        const { x, y, w, h, rx = 1, ry = 1, gx = 1, gy = 1 } = data;
                         this.#applyStyle(ctx, style);
-                        ctx.beginPath();
-                        ctx.ellipse(x, y, w / 2, h / 2, 0, 0, 2 * Math.PI);
-                        if (style.fillStyle) {
-                            ctx.fill();
+
+                        for (let i = 0; i < rx; i++) {
+                            for (let j = 0; j < ry; j++) {
+                                ctx.beginPath();
+                                ctx.ellipse(
+                                    x + i * gx,
+                                    y + j * gy,
+                                    w / 2,
+                                    h / 2,
+                                    0,
+                                    0,
+                                    2 * Math.PI,
+                                );
+                                if (style.fillStyle) {
+                                    ctx.fill();
+                                }
+                                if (style.strokeStyle) {
+                                    ctx.stroke();
+                                }
+                                ctx.closePath();
+                            }
                         }
-                        if (style.strokeStyle) {
-                            ctx.stroke();
-                        }
-                        ctx.closePath();
                     }
 
                     break;

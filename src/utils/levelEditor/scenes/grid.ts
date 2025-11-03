@@ -183,6 +183,61 @@ export class E_Tile extends Entity {
     }
 }
 
+const DOT_SIZE = 8;
+const DOT_GAP = TILE_SIZE / DOT_SIZE;
+
+export class E_Grid extends Entity {
+    #shape: C_Shape;
+
+    constructor() {
+        super('grid');
+
+        this.#shape = new C_Shape(
+            'dots',
+            'ELLIPSE',
+            { fillStyle: 'white', globalAlpha: 0.5 },
+            {
+                x: 1,
+                y: 1,
+            },
+            {
+                x: DOT_GAP,
+                y: DOT_GAP,
+            },
+        );
+        this.setScale(DOT_SIZE)
+            .addComponents(this.#shape)
+            .setPosition(-TILE_SIZE / 2);
+    }
+
+    override update(deltaTime: number) {
+        if (window.engine?.canvasSize) {
+            const topLeft = window.engine.screenToWorld({ x: 0, y: 0 }),
+                bottomRight = window.engine.screenToWorld(window.engine.canvasSize);
+            const gridTopLeft = {
+                    x: Math.floor((topLeft.x - TILE_SIZE / 2) / TILE_SIZE),
+                    y: Math.floor((topLeft.y - TILE_SIZE / 2) / TILE_SIZE),
+                },
+                gridBottomRight = {
+                    x: Math.floor((bottomRight.x + TILE_SIZE / 2) / TILE_SIZE),
+                    y: Math.floor((bottomRight.y + TILE_SIZE / 2) / TILE_SIZE),
+                };
+
+            this.setPosition({
+                x: gridTopLeft.x * TILE_SIZE + TILE_SIZE / 2,
+                y: gridTopLeft.y * TILE_SIZE + TILE_SIZE / 2,
+            });
+
+            this.#shape.repeat = {
+                x: Math.abs(gridTopLeft.x - gridBottomRight.x),
+                y: Math.abs(gridTopLeft.y - gridBottomRight.y),
+            };
+        }
+
+        return super.update(deltaTime);
+    }
+}
+
 const AXIS_LENGTH = 5;
 
 export class GridScene extends Scene {
@@ -215,5 +270,7 @@ export class GridScene extends Scene {
                 )
                 .setScaleToCamera({ x: true, y: false }),
         ].forEach((line) => line.setParent(this));
+
+        this.addEntities(new E_Grid());
     }
 }

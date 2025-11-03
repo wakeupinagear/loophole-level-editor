@@ -151,8 +151,10 @@ export class Entity implements Renderable {
         return this;
     }
 
-    setPosition(newPosition: Position): this {
-        this._transform.setPosition(newPosition);
+    setPosition(newPosition: number | Position): this {
+        this._transform.setPosition(
+            typeof newPosition === 'number' ? { x: newPosition, y: newPosition } : newPosition,
+        );
 
         return this;
     }
