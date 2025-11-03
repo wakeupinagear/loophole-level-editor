@@ -1,4 +1,4 @@
-import { RefreshCw, Rocket, Settings } from 'lucide-react';
+import { Camera, RefreshCw, Rocket, Settings } from 'lucide-react';
 import { useAppStore, useCurrentLevel } from '../../utils/store';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -21,6 +21,7 @@ export default function TopPanel() {
     const userSettings = useAppStore((state) => state.userSettings);
     const setUserSettings = useAppStore((state) => state.setUserSettings);
     const resetLevel = useAppStore((state) => state.resetLevel);
+    const setCameraTarget = useAppStore((state) => state.setCameraTarget);
     if (!currentLevel) return null;
 
     const { name } = currentLevel;
@@ -56,8 +57,19 @@ export default function TopPanel() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end">
                     <DropdownMenuLabel>Level Settings</DropdownMenuLabel>
+                    <DropdownMenuItem
+                        onClick={() =>
+                            setCameraTarget({
+                                position: { x: 0, y: 0 },
+                                rotation: 0,
+                                zoom: 1,
+                            })
+                        }
+                    >
+                        <Camera /> Reset Viewport
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => resetLevel(currentLevel.id)}>
-                        <RefreshCw /> Reset Level
+                        <RefreshCw /> Clear Level
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuLabel>Editor Settings</DropdownMenuLabel>

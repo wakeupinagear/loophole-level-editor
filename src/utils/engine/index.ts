@@ -12,6 +12,8 @@ import {
 import { ImageSystem, type LoadedImage } from './systems/image';
 import { KeyboardSystem, type KeyboardKeyState } from './systems/keyboard';
 import type { System } from './systems';
+import { DEFAULT_CAMERA_OPTIONS } from './utils';
+import { CameraSystem } from './systems/camera';
 
 type BrowserEvent =
     | 'mousemove'
@@ -44,13 +46,6 @@ type BrowserEventHandler<T extends BrowserEvent> = (
     data: BrowserEventMap[T],
 ) => void | boolean;
 
-const DEFAULT_CAMERA_OPTIONS: Camera = {
-    zoom: 1,
-    rotation: 0,
-    position: { x: 0, y: 0 },
-    dirty: false,
-};
-
 interface KeyCapture {
     key: string;
     ctrl?: boolean;
@@ -60,26 +55,27 @@ interface KeyCapture {
 }
 
 export interface EngineOptions {
-    zoomSpeed?: number;
-    minZoom?: number;
-    maxZoom?: number;
-    clearColor?: string;
+    zoomSpeed: number;
+    minZoom: number;
+    maxZoom: number;
+    clearColor: string;
 
-    scenes?: AvailableScenes;
-    startScenes?: string[];
+    scenes: AvailableScenes;
+    startScenes: string[];
 
-    cameraStart?: CameraData;
-    cameraDrag?: boolean;
-    cameraDragButtons?: PointerButton[];
+    cameraStart: CameraData;
+    cameraDrag: boolean;
+    cameraDragButtons: PointerButton[];
+    cameraTargetLerpSpeed: number;
 
-    images?: Record<string, string | HTMLImageElement>;
+    images: Record<string, string | HTMLImageElement>;
 
-    keysToCapture?: KeyCapture[];
+    keysToCapture: KeyCapture[];
 
-    asyncImageLoading?: boolean;
+    asyncImageLoading: boolean;
 }
 
-const DEFAULT_ENGINE_OPTIONS: Required<EngineOptions> = {
+const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
     zoomSpeed: 0.001,
     minZoom: 0.1,
     maxZoom: 10,
@@ -95,6 +91,7 @@ const DEFAULT_ENGINE_OPTIONS: Required<EngineOptions> = {
     },
     cameraDrag: false,
     cameraDragButtons: [PointerButton.MIDDLE, PointerButton.RIGHT],
+    cameraTargetLerpSpeed: 0.1,
 
     images: {},
 
@@ -108,24 +105,20 @@ export class Engine {
     protected readonly _id: number = Engine._nextId++;
 
     protected _canvas: HTMLCanvasElement | null = null;
-    protected _options: Required<EngineOptions> = { ...DEFAULT_ENGINE_OPTIONS };
+    protected _options: EngineOptions = { ...DEFAULT_ENGINE_OPTIONS };
 
-    protected _camera: Required<Camera>;
     protected _rootEntity: Entity;
-
-    protected _worldToScreenMatrix: DOMMatrix | null = null;
-    #worldToScreenMatrixDirty: boolean = true;
 
     protected _renderSystem: RenderSystem;
     protected _sceneSystem: SceneSystem;
     protected _keyboardSystem: KeyboardSystem;
     protected _pointerSystem: PointerSystem;
     protected _imageSystem: ImageSystem;
+    protected _cameraSystem: CameraSystem;
 
     protected _systems: System[] = [];
 
     #forceRender: boolean = true;
-
     #lastTime: number = performance.now();
 
     #fps: number = 0;
@@ -137,7 +130,7 @@ export class Engine {
 
     #browserEventHandlers: Partial<Record<BrowserEvent, BrowserEventHandler<BrowserEvent>[]>> = {};
 
-    constructor(options: EngineOptions = {}) {
+    constructor(options: Partial<EngineOptions> = {}) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         window.engine = this as unknown as any;
 
@@ -147,6 +140,7 @@ export class Engine {
         this._keyboardSystem = new KeyboardSystem(this);
         this._pointerSystem = new PointerSystem(this);
         this._imageSystem = new ImageSystem(this);
+        this._cameraSystem = new CameraSystem(this, this._rootEntity, this._options.cameraStart);
 
         this.addBrowserEventHandler('mousedown', (_, data) =>
             this.#setPointerButtonDown(data.button, true),
@@ -172,7 +166,6 @@ export class Engine {
         );
 
         this._options = { ...DEFAULT_ENGINE_OPTIONS, ...options };
-        this._camera = { ...DEFAULT_CAMERA_OPTIONS, ...this._options.cameraStart };
 
         this.#applyOptions(this._options);
         this._options.startScenes.forEach((scene) => {
@@ -192,10 +185,8 @@ export class Engine {
 
     set canvas(canvas: HTMLCanvasElement | null) {
         this._canvas = canvas;
-        if (canvas) {
-            this.#forceRender = true;
-        }
-        this.#worldToScreenMatrixDirty = true;
+        this._cameraSystem.worldToScreenMatrixDirty = true;
+        this.#forceRender = true;
     }
 
     get canvasSize(): Position | null {
@@ -206,21 +197,24 @@ export class Engine {
         return { x: this._canvas.width, y: this._canvas.height };
     }
 
-    get options(): Readonly<Required<EngineOptions>> {
+    get options(): Readonly<EngineOptions> {
         return this._options;
     }
 
-    set options(newOptions: EngineOptions) {
+    set options(newOptions: Partial<EngineOptions>) {
         this.#applyOptions(newOptions);
     }
 
     get camera(): Readonly<Camera> {
-        return this._camera;
+        return this._cameraSystem.camera;
     }
 
     set camera(newCamera: Partial<CameraData>) {
-        this._camera = { ...DEFAULT_CAMERA_OPTIONS, ...newCamera, dirty: true };
-        this.#worldToScreenMatrixDirty = true;
+        this._cameraSystem.camera = newCamera;
+    }
+
+    set cameraTarget(cameraTarget: CameraData | null) {
+        this._cameraSystem.cameraTarget = cameraTarget;
     }
 
     get rootEntity(): Readonly<Entity> {
@@ -228,20 +222,7 @@ export class Engine {
     }
 
     get worldToScreenMatrix(): Readonly<DOMMatrix> {
-        if (!this._worldToScreenMatrix || this.#worldToScreenMatrixDirty) {
-            if (!this.canvasSize) {
-                return new DOMMatrix();
-            }
-
-            this._worldToScreenMatrix = new DOMMatrix()
-                .translate(this.canvasSize.x / 2, this.canvasSize.y / 2)
-                .translate(this._camera.position.x, this._camera.position.y)
-                .rotate(this._camera.rotation)
-                .scale(this._camera.zoom, this._camera.zoom);
-            this.#worldToScreenMatrixDirty = false;
-        }
-
-        return this._worldToScreenMatrix;
+        return this._cameraSystem.worldToScreenMatrix;
     }
 
     get pointerState(): Readonly<PointerState> {
@@ -262,6 +243,14 @@ export class Engine {
 
     get pointerSystem(): PointerSystem {
         return this._pointerSystem;
+    }
+
+    get cameraSystem(): CameraSystem {
+        return this._cameraSystem;
+    }
+
+    forceRender(): void {
+        this.#forceRender = true;
     }
 
     addSystem(system: System): void {
@@ -288,10 +277,6 @@ export class Engine {
 
     addSceneEntities(sceneName: string, ...entities: Entity[]): void {
         this._sceneSystem.addEntities(sceneName, ...entities);
-    }
-
-    forceRender(): void {
-        this.#forceRender = true;
     }
 
     screenToWorld(position: Position): Position {
@@ -330,39 +315,19 @@ export class Engine {
     }
 
     setCameraPosition(position: Position): void {
-        if (this._camera.position.x !== position.x || this._camera.position.y !== position.y) {
-            this._camera.position = position;
-            this.#worldToScreenMatrixDirty = true;
-            this.#forceRender = true;
-            this._camera.dirty = true;
-        }
+        this._cameraSystem.setCameraPosition(position);
     }
 
     setCameraZoom(zoom: number): void {
-        if (this._camera.zoom !== zoom) {
-            this._camera.zoom = zoom;
-            this.#clampCameraZoom();
-            this.#worldToScreenMatrixDirty = true;
-            this.#forceRender = true;
-            this._camera.dirty = true;
-        }
+        this._cameraSystem.setCameraZoom(zoom);
     }
 
     zoomCamera(delta: number): void {
-        this._camera.zoom += delta * this._options.zoomSpeed;
-        this.#clampCameraZoom();
-        this.#worldToScreenMatrixDirty = true;
-        this.#forceRender = true;
-        this._camera.dirty = true;
+        this._cameraSystem.zoomCamera(delta);
     }
 
     setCameraRotation(rotation: number): void {
-        if (this._camera.rotation !== rotation) {
-            this._camera.rotation = rotation;
-            this.#worldToScreenMatrixDirty = true;
-            this.#forceRender = true;
-            this._camera.dirty = true;
-        }
+        this._cameraSystem.setCameraRotation(rotation);
     }
 
     getImage(name: string): Readonly<LoadedImage> | null {
@@ -421,7 +386,6 @@ export class Engine {
         let updated = this._update(deltaTime);
         updated = this._rootEntity.update(deltaTime) || updated;
 
-        this.#updateCameraPosition();
         this.#updateTime = performance.now() - startTime;
 
         return updated;
@@ -453,8 +417,8 @@ export class Engine {
         ctx.fillRect(0, 0, canvasWidth, canvasHeight);
         ctx.translate(canvasWidth / 2, canvasHeight / 2);
 
-        this._renderSystem.render(ctx, this._rootEntity, this._camera);
-        this._camera.dirty = false;
+        this._renderSystem.render(ctx, this._rootEntity, this._cameraSystem.camera);
+        this._cameraSystem.postRender();
 
         this.#renderTime = performance.now() - startTime;
     }
@@ -477,27 +441,24 @@ export class Engine {
         const sceneUpdated = this._sceneSystem.update(deltaTime);
         const imagesUpdated = this._imageSystem.update();
         const engineUpdated = this.#update(deltaTime);
+        const cameraUpdated = this._cameraSystem.update();
 
         const loadingImages = this._imageSystem.getLoadingImages();
         if (
-            (sceneUpdated ||
+            (this.#forceRender ||
+                sceneUpdated ||
                 engineUpdated ||
                 imagesUpdated ||
-                this._camera.dirty ||
-                this.#forceRender) &&
+                cameraUpdated) &&
             (this.options.asyncImageLoading || loadingImages.length === 0)
         ) {
             this.#render();
             this.#forceRender = false;
+        } else {
+            this.#renderTime = -1;
         }
 
         window.requestAnimationFrame(this.#engineLoop.bind(this));
-    }
-
-    #updateCameraPosition() {
-        this._rootEntity.setScale(this._camera.zoom);
-        this._rootEntity.setRotation(this._camera.rotation);
-        this._rootEntity.setPosition(this._camera.position);
     }
 
     #handleBrowserEvent(event: BrowserEvent, data: BrowserEventMap[BrowserEvent]): boolean {
@@ -540,21 +501,14 @@ export class Engine {
         this._pointerSystem.pointerButtonStateChange(button, down);
     }
 
-    #applyOptions(newOptions: EngineOptions): void {
+    #applyOptions(newOptions: Partial<EngineOptions>): void {
         this._options = { ...this._options, ...newOptions };
 
-        this.#clampCameraZoom();
+        this._cameraSystem.clampCameraZoom();
 
         Object.entries(this._options.images).forEach(([name, src]) => {
             this._imageSystem.loadImage(name, src);
         });
         this._options.images = {};
-    }
-
-    #clampCameraZoom(): void {
-        this._camera.zoom = Math.max(
-            this._options.minZoom,
-            Math.min(this._options.maxZoom, this._camera.zoom),
-        );
     }
 }

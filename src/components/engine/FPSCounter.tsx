@@ -20,7 +20,7 @@ export function FPSCounter({ className }: FPSCounterProps) {
                     renderTime: window.engine.renderTime,
                 });
             }
-        }, 1000);
+        }, 200);
 
         return () => clearInterval(interval);
     }, []);
@@ -31,7 +31,7 @@ export function FPSCounter({ className }: FPSCounterProps) {
             <br />
             Update: {stats.updateTime.toFixed(1)}ms
             <br />
-            Render: {stats.renderTime.toFixed(1)}ms
+            Render: {stats.renderTime >= 0 ? `${stats.renderTime.toFixed(1)}ms` : 'N/A'}
         </p>
     );
 }

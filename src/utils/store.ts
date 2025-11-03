@@ -9,6 +9,7 @@ import type {
 import { useMemo } from 'react';
 import type { E_Tile } from './levelEditor/scenes/grid';
 import { isMac } from './engine/utils';
+import type { CameraData } from './engine/types';
 
 interface UserSettings {
     scrollDirection: -1 | 1;
@@ -55,6 +56,9 @@ interface AppStore {
 
     userSettings: UserSettings;
     setUserSettings: (settings: Partial<UserSettings>) => void;
+
+    cameraTarget: CameraData | null;
+    setCameraTarget: (cameraTarget: CameraData | null) => void;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -166,6 +170,9 @@ export const useAppStore = create<AppStore>()(
                 },
                 setUserSettings: (settings) =>
                     set((state) => ({ userSettings: { ...state.userSettings, ...settings } })),
+
+                cameraTarget: null,
+                setCameraTarget: (cameraTarget) => set({ cameraTarget }),
             };
         },
         {

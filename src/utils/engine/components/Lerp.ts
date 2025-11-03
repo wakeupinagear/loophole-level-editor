@@ -12,6 +12,9 @@ interface LerpOptions<T extends LerpValueType> {
     type?: 'linear' | 'fractional';
 }
 
+const SNAP_EPSILON = 1e-6;
+const BASELINE_RATE = 1e-3;
+
 export class C_Lerp<T extends LerpValueType> extends Component {
     #options: LerpOptions<T>;
 
@@ -65,13 +68,11 @@ export class C_Lerp<T extends LerpValueType> extends Component {
 
     #lerpLinear(current: number, target: number, deltaTime: number): number {
         if (this.#options.variant === 'degrees') {
-            // Normalize angles to be within 0-360 degrees
             const startAngle = ((current % 360) + 360) % 360;
             const endAngle = ((target % 360) + 360) % 360;
 
             let delta = endAngle - startAngle;
 
-            // Adjust delta to take the shortest path
             if (delta > 180) {
                 delta -= 360;
             } else if (delta < -180) {
@@ -80,12 +81,10 @@ export class C_Lerp<T extends LerpValueType> extends Component {
 
             const step = deltaTime * this.#options.speed;
 
-            // If the step would overshoot (or exactly reach) the target, snap to target
             if (step >= Math.abs(delta)) {
                 return target;
             }
 
-            // Perform linear interpolation toward the shortest direction
             const interpolatedAngle = startAngle + step * Math.sign(delta);
 
             return ((interpolatedAngle % 360) + 360) % 360;
@@ -107,7 +106,27 @@ export class C_Lerp<T extends LerpValueType> extends Component {
             return target;
         }
 
-        return current + (target - current) * deltaTime * this.#options.speed;
+        const delta = target - current;
+        if (Math.abs(delta) <= SNAP_EPSILON) {
+            return target;
+        }
+
+        let step = delta * mult;
+        const minStep = BASELINE_RATE * deltaTime;
+        if (Math.abs(step) < minStep) {
+            step = Math.sign(delta) * Math.min(minStep, Math.abs(delta));
+        }
+
+        const next = current + step;
+        if (
+            (delta > 0 && next >= target) ||
+            (delta < 0 && next <= target) ||
+            Math.abs(target - next) <= SNAP_EPSILON
+        ) {
+            return target;
+        }
+
+        return next;
     }
 }
 

@@ -67,7 +67,7 @@ export class LevelEditor extends Engine {
     #undoStack: EditActionGroup[] = [];
     #redoStack: EditActionGroup[] = [];
 
-    constructor(onLevelChanged?: OnLevelChangedCallback, options: EngineOptions = {}) {
+    constructor(onLevelChanged?: OnLevelChangedCallback, options: Partial<EngineOptions> = {}) {
         super({
             scenes: SCENES,
             startScenes: [GridScene.name, UIScene.name],
@@ -127,6 +127,7 @@ export class LevelEditor extends Engine {
         exitTile.variant = 'exit';
 
         getAppStore().setSelectedTiles([]);
+        this.forceRender();
     }
 
     set onLevelChanged(onLevelChanged: OnLevelChangedCallback) {
@@ -139,6 +140,16 @@ export class LevelEditor extends Engine {
 
     get tileCount(): number {
         return Object.keys(this.#tiles).length;
+    }
+
+    override _update(): boolean {
+        const { cameraTarget, setCameraTarget } = getAppStore();
+        if (cameraTarget) {
+            this.cameraTarget = cameraTarget;
+            setCameraTarget(null);
+        }
+
+        return false;
     }
 
     calculateTilePositionFromWorld(

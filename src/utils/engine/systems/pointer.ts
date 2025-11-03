@@ -206,6 +206,10 @@ export class PointerSystem extends System {
                 this._engine.zoomCamera(this.#pointerState.scrollDelta);
                 this.#pointerState.scrollDelta = 0;
             }
+
+            if (this.#dragStartMousePosition) {
+                this._engine.cameraTarget = null;
+            }
         }
 
         return false;

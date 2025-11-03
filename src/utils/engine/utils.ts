@@ -1,4 +1,4 @@
-import type { Position } from './types';
+import type { Camera, Position } from './types';
 
 export const lerp = (from: number, to: number, t: number): number => {
     return from + (to - from) * t;
@@ -14,3 +14,10 @@ export const lerpPosition = (from: Position, to: Position, t: number): Position 
 };
 
 export const isMac = navigator.platform.toUpperCase().includes('MAC');
+
+export const DEFAULT_CAMERA_OPTIONS: Camera = {
+    zoom: 1,
+    rotation: 0,
+    position: { x: 0, y: 0 },
+    dirty: false,
+};
