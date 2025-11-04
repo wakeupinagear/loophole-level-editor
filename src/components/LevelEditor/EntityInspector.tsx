@@ -4,12 +4,15 @@ import clsx from 'clsx';
 import type { E_Tile } from '@/utils/levelEditor/scenes/grid';
 import { useMemo } from 'react';
 import {
+    calculateSelectionCenter,
     ENTITY_METADATA,
     getLoopholeEntityChannel,
     getLoopholeEntityExtendedType,
 } from '@/utils/utils';
-import { Trash } from 'lucide-react';
+import { RotateCcw, RotateCw, Trash } from 'lucide-react';
 import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 
 function computeSharedValue<T>(
     tiles: E_Tile[],
@@ -55,6 +58,8 @@ interface MultiTileContentProps {
 }
 
 function MultiTileContent({ selectedTiles }: MultiTileContentProps) {
+    const setSelectedTiles = useAppStore((state) => state.setSelectedTiles);
+
     const tileInfo = useMemo(() => {
         return selectedTiles.map((tile) => ({
             entity: tile.entity,
@@ -70,6 +75,18 @@ function MultiTileContent({ selectedTiles }: MultiTileContentProps) {
               multiple ? `${tileInfo.length} ` : ''
           }${ENTITY_METADATA[primaryInfo.extendedType].name}${multiple ? 's' : ''}`
         : `${tileInfo.length} Entities`;
+
+    const rotateEntities = (rotation: 90 | -90) => {
+        const center = calculateSelectionCenter(selectedTiles);
+        const entities = window.engine?.rotateEntities(
+            selectedTiles.map((t) => t.entity),
+            center,
+            rotation,
+        );
+        if (entities) {
+            setSelectedTiles(entities);
+        }
+    };
 
     return (
         <>
@@ -94,9 +111,20 @@ function MultiTileContent({ selectedTiles }: MultiTileContentProps) {
                     </button>
                 )}
             </div>
-            {tileInfo.every((ti) => ENTITY_METADATA[ti.extendedType].hasChannel) && (
-                <ChannelInput selectedTiles={selectedTiles} />
-            )}
+            <div className="grid grid-cols-[min-content_1fr] gap-2 items-center justify-items-start">
+                <label>Rotate</label>
+                <div className="flex gap-2">
+                    <Button size="icon-lg" variant="outline" onClick={() => rotateEntities(-90)}>
+                        <RotateCcw />
+                    </Button>
+                    <Button size="icon-lg" variant="outline" onClick={() => rotateEntities(90)}>
+                        <RotateCw />
+                    </Button>
+                </div>
+                {tileInfo.every((ti) => ENTITY_METADATA[ti.extendedType].hasChannel) && (
+                    <ChannelInput selectedTiles={selectedTiles} />
+                )}
+            </div>
         </>
     );
 }
@@ -112,9 +140,9 @@ function ChannelInput({ selectedTiles }: ChannelInputProps) {
     );
 
     return (
-        <div className="flex gap-2 w-full items-center">
-            <label htmlFor="channel-input">Channel:</label>
-            <input
+        <>
+            <label htmlFor="channel-input">Channel</label>
+            <Input
                 type="number"
                 id="channel-input"
                 name="channel"
@@ -129,9 +157,9 @@ function ChannelInput({ selectedTiles }: ChannelInputProps) {
                         );
                     }
                 }}
-                className="w-full border border-gray-300 rounded-md px-2 py-1"
+                className="border border-gray-300 rounded-md px-2 py-1"
             />
-        </div>
+        </>
     );
 }
 

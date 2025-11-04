@@ -363,12 +363,16 @@ export class LevelEditor extends Engine {
         for (const entity of entities) {
             group.actions.push({ type: 'remove', entity });
 
+            const position = getLoopholeEntityPosition(entity);
+            const positionType = getLoopholeEntityPositionType(entity);
+            const isCritical = this.#isOverlappingCriticalTile(position, positionType);
+
             const newEntity = { ...entity };
             let newPosition: Loophole_Int2;
             if ('edgePosition' in newEntity) {
                 newPosition = {
-                    x: newEntity.edgePosition.cell.x + offset.x,
-                    y: newEntity.edgePosition.cell.y + offset.y,
+                    x: position.x + offset.x,
+                    y: position.y + offset.y,
                 };
                 newEntity.edgePosition = {
                     ...newEntity.edgePosition,
@@ -376,13 +380,14 @@ export class LevelEditor extends Engine {
                 };
             } else {
                 newPosition = {
-                    x: newEntity.position.x + offset.x,
-                    y: newEntity.position.y + offset.y,
+                    x: position.x + offset.x,
+                    y: position.y + offset.y,
                 };
                 newEntity.position = newPosition;
             }
 
             if (
+                isCritical ||
                 !this.#isOverlappingCriticalTile(
                     newPosition,
                     getLoopholeEntityPositionType(newEntity),
@@ -416,7 +421,7 @@ export class LevelEditor extends Engine {
 
     rotateEntities(
         entities: Loophole_EntityWithID[],
-        centerPosition: Loophole_Int2,
+        centerPosition: Position,
         rotation: 90 | -90,
         hash?: string | null,
     ): E_Tile[] {
@@ -430,27 +435,27 @@ export class LevelEditor extends Engine {
 
             let newEntity: Loophole_EntityWithID;
             const positionType = getLoopholeEntityPositionType(entity);
+            const position = getLoopholeEntityPosition(entity);
+            const isCritical = this.#isOverlappingCriticalTile(position, positionType);
 
             if (positionType === 'CELL') {
-                // Rotate cell position around center
                 if (!('position' in entity)) continue;
 
-                const currentPos = entity.position;
+                const currentPos = position;
                 const dx = currentPos.x - centerPosition.x;
                 const dy = currentPos.y - centerPosition.y;
 
                 const newPosition: Loophole_Int2 =
                     rotation === 90
                         ? {
-                              x: centerPosition.x - dy,
-                              y: centerPosition.y + dx,
+                              x: Math.round(centerPosition.x - dy),
+                              y: Math.round(centerPosition.y + dx),
                           }
                         : {
-                              x: centerPosition.x + dy,
-                              y: centerPosition.y - dx,
+                              x: Math.round(centerPosition.x + dy),
+                              y: Math.round(centerPosition.y - dx),
                           };
 
-                // Update rotation property if entity has one
                 if ('rotation' in entity) {
                     const currentDegrees = loopholeRotationToDegrees(entity.rotation);
                     const newDegrees = (currentDegrees + rotation + 360) % 360;
@@ -466,28 +471,22 @@ export class LevelEditor extends Engine {
                     };
                 }
             } else {
-                // Handle edge entities
                 if (!('edgePosition' in entity)) continue;
 
                 const edgePos = entity.edgePosition;
 
-                // Convert edge position to world coordinates
                 const worldX = edgePos.cell.x + (edgePos.alignment === 'RIGHT' ? 0.5 : 0);
                 const worldY = edgePos.cell.y + (edgePos.alignment === 'TOP' ? 0.5 : 0);
 
-                // Rotate world position around center
                 const dx = worldX - centerPosition.x;
                 const dy = worldY - centerPosition.y;
 
                 const newWorldX = rotation === 90 ? centerPosition.x - dy : centerPosition.x + dy;
                 const newWorldY = rotation === 90 ? centerPosition.y + dx : centerPosition.y - dx;
 
-                // Convert back to edge position
-                // Alignment always flips when rotating 90 degrees
                 const newAlignment: Loophole_EdgeAlignment =
                     edgePos.alignment === 'RIGHT' ? 'TOP' : 'RIGHT';
 
-                // Calculate new cell position
                 const newCellX = Math.round(newWorldX - (newAlignment === 'RIGHT' ? 0.5 : 0));
                 const newCellY = Math.round(newWorldY - (newAlignment === 'TOP' ? 0.5 : 0));
 
@@ -500,9 +499,9 @@ export class LevelEditor extends Engine {
                 };
             }
 
-            // Check if new position is valid
             const newPosition = getLoopholeEntityPosition(newEntity);
             if (
+                isCritical ||
                 !this.#isOverlappingCriticalTile(
                     newPosition,
                     getLoopholeEntityPositionType(newEntity),

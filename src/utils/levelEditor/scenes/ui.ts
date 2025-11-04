@@ -1,9 +1,7 @@
 import {
+    calculateSelectionCenter,
     degreesToLoopholeRotation,
     ENTITY_METADATA,
-    getLoopholeEntityEdgeAlignment,
-    getLoopholeEntityPosition,
-    loopholePositionToEnginePosition,
     loopholeRotationToDegrees,
     TILE_SIZE,
 } from '@/utils/utils';
@@ -446,7 +444,7 @@ class E_DragCursor extends Entity {
 
         const active = hasSelection && !brushEntityType;
         if (active) {
-            const center = this.#calculateSelectionCenter(selectedTileArray);
+            const center = calculateSelectionCenter(selectedTileArray);
             this.#positionLerp.target = {
                 x: center.x * TILE_SIZE,
                 y: center.y * TILE_SIZE,
@@ -505,7 +503,7 @@ class E_DragCursor extends Entity {
                 !this.#isDragging &&
                 selectedTileArray.length > 0
             ) {
-                const center = this.#calculateSelectionCenterInt(selectedTileArray);
+                const center = calculateSelectionCenter(selectedTileArray);
                 const entities = selectedTileArray.map((t) => t.entity);
                 const newTiles = this.#editor.rotateEntities(
                     entities,
@@ -530,40 +528,6 @@ class E_DragCursor extends Entity {
         }
 
         return updated;
-    }
-
-    #calculateSelectionCenter(tiles: E_Tile[]): Position {
-        if (tiles.length === 0) {
-            return { x: 0, y: 0 };
-        }
-
-        let minX = Number.POSITIVE_INFINITY;
-        let minY = Number.POSITIVE_INFINITY;
-        let maxX = Number.NEGATIVE_INFINITY;
-        let maxY = Number.NEGATIVE_INFINITY;
-
-        tiles.forEach((tile) => {
-            const pos = getLoopholeEntityPosition(tile.entity);
-            const edgeAlign = getLoopholeEntityEdgeAlignment(tile.entity);
-            const enginePos = loopholePositionToEnginePosition(pos, edgeAlign);
-            if (enginePos.x < minX) minX = enginePos.x;
-            if (enginePos.y < minY) minY = enginePos.y;
-            if (enginePos.x > maxX) maxX = enginePos.x;
-            if (enginePos.y > maxY) maxY = enginePos.y;
-        });
-
-        return {
-            x: (minX + maxX) / 2,
-            y: (minY + maxY) / 2,
-        };
-    }
-
-    #calculateSelectionCenterInt(tiles: E_Tile[]): Loophole_Int2 {
-        const center = this.#calculateSelectionCenter(tiles);
-        return {
-            x: Math.round(center.x),
-            y: Math.round(center.y),
-        };
     }
 
     #updateTilePositions(tiles: E_Tile[]) {

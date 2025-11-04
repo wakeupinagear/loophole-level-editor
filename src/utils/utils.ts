@@ -22,6 +22,7 @@ import type {
     Loophole_Exit,
 } from './levelEditor/externalLevelSchema';
 import type { Position } from './engine/types';
+import type { E_Tile } from './levelEditor/scenes/grid';
 
 export const TILE_CENTER_FRACTION = 0.7;
 export const TILE_SIZE = 100;
@@ -447,4 +448,30 @@ export const getLoopholeEntityChannel = (entity: Loophole_Entity): number | null
     }
 
     return null;
+};
+
+export const calculateSelectionCenter = (tiles: E_Tile[]): Position => {
+    if (tiles.length === 0) {
+        return { x: 0, y: 0 };
+    }
+
+    let minX = Number.POSITIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+
+    tiles.forEach((tile) => {
+        const pos = getLoopholeEntityPosition(tile.entity);
+        const edgeAlign = getLoopholeEntityEdgeAlignment(tile.entity);
+        const enginePos = loopholePositionToEnginePosition(pos, edgeAlign);
+        if (enginePos.x < minX) minX = enginePos.x;
+        if (enginePos.y < minY) minY = enginePos.y;
+        if (enginePos.x > maxX) maxX = enginePos.x;
+        if (enginePos.y > maxY) maxY = enginePos.y;
+    });
+
+    return {
+        x: (minX + maxX) / 2,
+        y: (minY + maxY) / 2,
+    };
 };
