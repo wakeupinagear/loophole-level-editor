@@ -20,6 +20,7 @@ import type {
     Loophole_CleansingPool,
     Loophole_InternalLevel,
     Loophole_Exit,
+    Loophole_WireSprite,
 } from './levelEditor/externalLevelSchema';
 import type { Position } from './engine/types';
 import type { E_Tile } from './levelEditor/scenes/grid';
@@ -157,6 +158,7 @@ interface EntityMetadata {
     hasRotation?: boolean;
     hasFlipDirection?: boolean;
     hasChannel?: boolean;
+    hasWireSprite?: boolean;
     hideInPicker?: boolean;
 }
 
@@ -313,6 +315,7 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         tileScale: 1,
         hasRotation: true,
         hasChannel: true,
+        hasWireSprite: true,
     },
     CLEANSING_POOL: {
         name: 'Cleansing Pool',
@@ -442,9 +445,25 @@ export const getLoopholeEntityDegreeRotation = (entity: Loophole_Entity): number
     return 0;
 };
 
+export const getLoopholeEntityFlipDirection = (entity: Loophole_Entity): boolean => {
+    if ('flipDirection' in entity) {
+        return entity.flipDirection;
+    }
+
+    return false;
+};
+
 export const getLoopholeEntityChannel = (entity: Loophole_Entity): number | null => {
     if ('channel' in entity) {
         return entity.channel;
+    }
+
+    return null;
+};
+
+export const getLoopholeWireSprite = (entity: Loophole_Entity): Loophole_WireSprite | null => {
+    if ('sprite' in entity) {
+        return entity.sprite;
     }
 
     return null;
@@ -475,3 +494,6 @@ export const calculateSelectionCenter = (tiles: E_Tile[]): Position => {
         y: (minY + maxY) / 2,
     };
 };
+
+export const WIRE_CORNER_SPRITE = 'WireCorner';
+export const GUY_SPRITE = 'Guy';

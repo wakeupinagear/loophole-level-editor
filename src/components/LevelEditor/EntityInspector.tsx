@@ -8,11 +8,17 @@ import {
     ENTITY_METADATA,
     getLoopholeEntityChannel,
     getLoopholeEntityExtendedType,
+    getLoopholeEntityFlipDirection,
+    getLoopholeWireSprite,
 } from '@/utils/utils';
 import { RotateCcw, RotateCw, Trash } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
+import { ToggleGroup, ToggleGroupItem } from '../ui/toggle-group';
+import type { Loophole_WireSprite } from '@/utils/levelEditor/externalLevelSchema';
+import { Switch } from '../ui/switch';
+import { Label } from '../ui/label';
 
 function computeSharedValue<T>(
     tiles: E_Tile[],
@@ -112,7 +118,7 @@ function MultiTileContent({ selectedTiles }: MultiTileContentProps) {
                 )}
             </div>
             <div className="grid grid-cols-[min-content_1fr] gap-2 items-center justify-items-start">
-                <label>Rotate</label>
+                <Label>Rotate</Label>
                 <div className="flex gap-2">
                     <Button size="icon-lg" variant="outline" onClick={() => rotateEntities(-90)}>
                         <RotateCcw />
@@ -123,6 +129,12 @@ function MultiTileContent({ selectedTiles }: MultiTileContentProps) {
                 </div>
                 {tileInfo.every((ti) => ENTITY_METADATA[ti.extendedType].hasChannel) && (
                     <ChannelInput selectedTiles={selectedTiles} />
+                )}
+                {tileInfo.every((ti) => ENTITY_METADATA[ti.extendedType].hasWireSprite) && (
+                    <WireInput selectedTiles={selectedTiles} />
+                )}
+                {tileInfo.every((ti) => ENTITY_METADATA[ti.extendedType].hasFlipDirection) && (
+                    <FlipDirectionInput selectedTiles={selectedTiles} />
                 )}
             </div>
         </>
@@ -141,11 +153,11 @@ function ChannelInput({ selectedTiles }: ChannelInputProps) {
 
     return (
         <>
-            <label htmlFor="channel-input">Channel</label>
+            <Label htmlFor="channel-input">Channel</Label>
             <Input
-                type="number"
                 id="channel-input"
                 name="channel"
+                type="number"
                 value={sharedValue && channel !== null ? channel : ''}
                 placeholder={sharedValue ? undefined : '— multiple values —'}
                 onChange={(e) => {
@@ -158,6 +170,72 @@ function ChannelInput({ selectedTiles }: ChannelInputProps) {
                     }
                 }}
                 className="border border-gray-300 rounded-md px-2 py-1"
+            />
+        </>
+    );
+}
+
+interface WireInputProps {
+    selectedTiles: E_Tile[];
+}
+
+function WireInput({ selectedTiles }: WireInputProps) {
+    const { sharedValue, value: sprite } = useMemo(
+        () => computeSharedValue(selectedTiles, (tile) => getLoopholeWireSprite(tile.entity)),
+        [selectedTiles],
+    );
+
+    return (
+        <>
+            <Label htmlFor="wire-input">Direction</Label>
+            <ToggleGroup
+                id="wire-input"
+                type="single"
+                variant="outline"
+                value={sharedValue && sprite !== null ? sprite : undefined}
+                onValueChange={(value) => {
+                    if (value !== undefined) {
+                        window.engine?.updateEntities(
+                            selectedTiles.map((t) => t.entity),
+                            { sprite: value as Loophole_WireSprite },
+                        );
+                    }
+                }}
+            >
+                <ToggleGroupItem value="STRAIGHT">Straight</ToggleGroupItem>
+                <ToggleGroupItem value="CORNER">Corner</ToggleGroupItem>
+            </ToggleGroup>
+        </>
+    );
+}
+
+interface FlipDirectionInputProps {
+    selectedTiles: E_Tile[];
+}
+
+function FlipDirectionInput({ selectedTiles }: FlipDirectionInputProps) {
+    const { sharedValue, value: flipDirection } = useMemo(
+        () =>
+            computeSharedValue(selectedTiles, (tile) =>
+                getLoopholeEntityFlipDirection(tile.entity),
+            ),
+        [selectedTiles],
+    );
+
+    return (
+        <>
+            <Label htmlFor="flip-direction-input">Flipped</Label>
+            <Switch
+                id="flip-direction-input"
+                checked={sharedValue && flipDirection !== null ? flipDirection : false}
+                onCheckedChange={(checked) => {
+                    if (checked !== undefined) {
+                        window.engine?.updateEntities(
+                            selectedTiles.map((t) => t.entity),
+                            { flipDirection: checked },
+                        );
+                    }
+                }}
             />
         </>
     );

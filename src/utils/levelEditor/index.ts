@@ -25,10 +25,12 @@ import {
     getLoopholeEntityExtendedType,
     getLoopholeEntityPosition,
     getLoopholeEntityPositionType,
+    GUY_SPRITE,
     loopholePositionToEnginePosition,
     loopholeRotationToDegrees,
     OVERLAPPABLE_ENTITY_TYPES,
     TILE_SIZE,
+    WIRE_CORNER_SPRITE,
     type LoopholePositionType,
 } from '../utils';
 import { v4 } from 'uuid';
@@ -94,7 +96,8 @@ export class LevelEditor extends Engine {
                     }),
                     {},
                 ),
-                Guy: 'pixel/guy.png',
+                [GUY_SPRITE]: 'pixel/guy.png',
+                [WIRE_CORNER_SPRITE]: 'pixel/wire-corner.png',
                 ...options.images,
             },
         });
@@ -402,7 +405,7 @@ export class LevelEditor extends Engine {
 
     updateEntities(
         entities: Loophole_EntityWithID[],
-        updatedProperties: Partial<Loophole_EntityWithID>,
+        updatedProperties: Partial<Loophole_EntityWithID> | Partial<Loophole_EntityWithID>[],
         hash?: string | null,
     ): E_Tile[] {
         const group: EditActionGroup = {
@@ -410,8 +413,12 @@ export class LevelEditor extends Engine {
             hash: hash || v4(),
         };
 
-        for (const entity of entities) {
-            const updatedEntity = { ...entity, ...updatedProperties } as Loophole_EntityWithID;
+        for (let i = 0; i < entities.length; i++) {
+            const entity = entities[i];
+            const props = Array.isArray(updatedProperties)
+                ? updatedProperties[i]
+                : updatedProperties;
+            const updatedEntity = { ...entity, ...props } as Loophole_EntityWithID;
             group.actions.push({ type: 'remove', entity });
             group.actions.push({ type: 'place', entity: updatedEntity });
         }

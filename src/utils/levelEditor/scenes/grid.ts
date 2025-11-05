@@ -15,8 +15,11 @@ import {
     getLoopholeEntityExtendedType,
     getLoopholeEntityPosition,
     getLoopholeEntityPositionType,
+    getLoopholeWireSprite,
+    GUY_SPRITE,
     loopholePositionToEnginePosition,
     TILE_SIZE,
+    WIRE_CORNER_SPRITE,
 } from '@/utils/utils';
 import { C_Lerp, C_LerpOpacity, C_LerpPosition } from '@/utils/engine/components/Lerp';
 import type { Position } from '@/utils/engine/types';
@@ -91,7 +94,7 @@ export class E_Tile extends Entity {
         this.#variant = variant;
         if (variant === 'entrance') {
             if (!this.#guyImage) {
-                this.#guyImage = new C_Image('guy', 'Guy');
+                this.#guyImage = new C_Image('guy', GUY_SPRITE);
                 this.addComponents(this.#guyImage);
             }
         } else {
@@ -171,7 +174,14 @@ export class E_Tile extends Entity {
         }
 
         this.setZIndex(ENTITY_TYPE_DRAW_ORDER[this.#entity.entityType] + 1);
-        this.#tileImage.imageName = name;
+
+        const wireSprite = getLoopholeWireSprite(this.#entity);
+        if (wireSprite === 'CORNER') {
+            this.#tileImage.imageName = WIRE_CORNER_SPRITE;
+        } else {
+            this.#tileImage.imageName = name;
+        }
+
         this.#highlightEntity.setEnabled(true).setScale(
             positionType === 'CELL'
                 ? TILE_HIGHLIGHT_SCALE_MULT

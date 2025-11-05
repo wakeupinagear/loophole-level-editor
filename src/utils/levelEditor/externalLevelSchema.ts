@@ -27,6 +27,8 @@ export type Loophole_EdgePosition = {
 //    - "DOWN"  = 270 deg counter-clockwise
 export type Loophole_Rotation = 'RIGHT' | 'UP' | 'LEFT' | 'DOWN';
 
+export type Loophole_WireSprite = 'STRAIGHT' | 'CORNER';
+
 // The color palette for the walls and floors.
 //    0: orange floor & blue walls
 //    1: blue floor & orange/purple walls
@@ -220,7 +222,7 @@ export interface Loophole_Wire extends Loophole_EntityBase {
     entityType: 'WIRE';
     position: Loophole_Int2;
     rotation: Loophole_Rotation;
-    sprite: 'STRAIGHT' | 'CORNER';
+    sprite: Loophole_WireSprite;
     // The wire lights up when this channel is activated.
     channel: Loophole_Int;
 }

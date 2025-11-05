@@ -498,20 +498,28 @@ class E_DragCursor extends Entity {
                 }
             }
 
-            if (
-                this.#editor.getKey('r').pressed &&
-                !this.#isDragging &&
-                selectedTileArray.length > 0
-            ) {
-                const center = calculateSelectionCenter(selectedTileArray);
-                const entities = selectedTileArray.map((t) => t.entity);
-                const newTiles = this.#editor.rotateEntities(
-                    entities,
-                    center,
-                    this.#editor.getKey('Shift').down ? -90 : 90,
-                );
-                setSelectedTiles(newTiles);
-                newTiles.forEach((t) => t.syncVisualState());
+            if (!this.#isDragging && selectedTileArray.length > 0) {
+                if (this.#editor.getKey('r').pressed) {
+                    const center = calculateSelectionCenter(selectedTileArray);
+                    const entities = selectedTileArray.map((t) => t.entity);
+                    const newTiles = this.#editor.rotateEntities(
+                        entities,
+                        center,
+                        this.#editor.getKey('Shift').down ? -90 : 90,
+                    );
+                    setSelectedTiles(newTiles);
+                    newTiles.forEach((t) => t.syncVisualState());
+                } else if (this.#editor.getKey('x').pressed) {
+                    const oneWayEntities = selectedTileArray
+                        .map((t) => t.entity)
+                        .filter((e) => e.entityType === 'ONE_WAY');
+                    this.#editor.updateEntities(
+                        oneWayEntities,
+                        oneWayEntities.map((e) => ({
+                            flipDirection: !e.flipDirection,
+                        })),
+                    );
+                }
             }
         }
 
