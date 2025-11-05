@@ -3,6 +3,7 @@ import {
     degreesToLoopholeRotation,
     ENTITY_METADATA,
     getLoopholeExplosionPosition,
+    getLoopholeExplosionStartPosition,
     loopholeRotationToDegrees,
     TILE_SIZE,
 } from '@/utils/utils';
@@ -339,6 +340,10 @@ class E_SelectionCursor extends Entity {
         this.addComponents(this.#shapeComp, this.#opacityLerp).setScale(0);
     }
 
+    get active(): boolean {
+        return this.#active;
+    }
+
     override update(deltaTime: number): boolean {
         let updated = super.update(deltaTime);
         const pointerPosition = { ...this.#editor.pointerState.worldPosition };
@@ -396,6 +401,7 @@ class E_SelectionCursor extends Entity {
         }
 
         this.#opacityLerp.target = this.#active ? 0.25 : 0;
+        this.#editor.pointerSystem.checkForOverlap = !this.#active;
 
         return updated;
     }
@@ -570,7 +576,7 @@ class E_DragCursor extends Entity {
                 newEntity.position = newPosition;
             } else if (newEntity.entityType === 'EXPLOSION') {
                 newPosition = getLoopholeExplosionPosition(newEntity, this.#dragOffset);
-                newEntity.startPosition = newPosition.x;
+                newEntity.startPosition = getLoopholeExplosionStartPosition(newEntity, newPosition);
             }
 
             tile.entity = newEntity;
@@ -584,14 +590,13 @@ class E_DragCursor extends Entity {
 
         const originalEntities = Array.from(this.#originalEntities.values());
         const newTiles = this.#editor.moveEntities(originalEntities, this.#dragOffset);
-
         getAppStore().setSelectedTiles(newTiles);
         newTiles.forEach((t) => t.syncVisualState());
+
         this.#originalEntities.clear();
     }
 
     #cancelDrag(tiles: E_Tile[]) {
-        // Restore original positions
         tiles.forEach((tile) => {
             const originalEntity = this.#originalEntities.get(tile.entity.tID);
             if (originalEntity) {

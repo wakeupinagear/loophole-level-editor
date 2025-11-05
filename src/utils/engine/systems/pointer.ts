@@ -68,6 +68,8 @@ export class PointerSystem extends System {
     #dragStartMousePosition: Position | null = null;
     #dragStartCameraPosition: Position | null = null;
 
+    #checkForOverlap: boolean = true;
+
     get pointerState(): Readonly<PointerState> {
         return this.#pointerState;
     }
@@ -107,6 +109,14 @@ export class PointerSystem extends System {
         this.#pointerState.justMovedOnScreen = !this.#pointerState.onScreen && onScreen;
         this.#pointerState.justMovedOffScreen = this.#pointerState.onScreen && !onScreen;
         this.#pointerState.onScreen = onScreen;
+    }
+
+    set checkForOverlap(checkForOverlap: boolean) {
+        this.#checkForOverlap = checkForOverlap;
+    }
+
+    get checkForOverlap(): boolean {
+        return this.#checkForOverlap;
     }
 
     getPointerButton(button: PointerButton): PointerButtonState {
@@ -253,18 +263,22 @@ export class PointerSystem extends System {
     }
 
     #updateAllPointerTargets(): void {
-        if (this.#pointerState.onScreen) {
-            const pointerTargets = this.#resetAllPointerTargets();
-            for (let i = pointerTargets.length - 1; i >= 0; i--) {
-                const pointerTarget = pointerTargets[i];
-                const isPointerOver = pointerTarget.checkIfPointerOver(
-                    this.#pointerState.worldPosition,
-                );
-                if (isPointerOver) {
-                    break;
+        if (this.#checkForOverlap) {
+            if (this.#pointerState.onScreen) {
+                const pointerTargets = this.#resetAllPointerTargets();
+                for (let i = pointerTargets.length - 1; i >= 0; i--) {
+                    const pointerTarget = pointerTargets[i];
+                    const isPointerOver = pointerTarget.checkIfPointerOver(
+                        this.#pointerState.worldPosition,
+                    );
+                    if (isPointerOver) {
+                        break;
+                    }
                 }
+            } else if (this.#pointerState.justMovedOffScreen) {
+                this.#resetAllPointerTargets();
             }
-        } else if (this.#pointerState.justMovedOffScreen) {
+        } else {
             this.#resetAllPointerTargets();
         }
     }

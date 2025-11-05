@@ -5,11 +5,14 @@ import type { E_Tile } from '@/utils/levelEditor/scenes/grid';
 import { useMemo } from 'react';
 import {
     calculateSelectionCenter,
+    degreesToLoopholeRotation,
     ENTITY_METADATA,
     getLoopholeEntityChannel,
+    getLoopholeEntityDirection,
     getLoopholeEntityExtendedType,
     getLoopholeEntityFlipDirection,
     getLoopholeWireSprite,
+    loopholeRotationToDegrees,
 } from '@/utils/utils';
 import { RotateCcw, RotateCw, Trash } from 'lucide-react';
 import { Badge } from '../ui/badge';
@@ -136,6 +139,9 @@ function MultiTileContent({ selectedTiles }: MultiTileContentProps) {
                 {tileInfo.every((ti) => ENTITY_METADATA[ti.extendedType].hasFlipDirection) && (
                     <FlipDirectionInput selectedTiles={selectedTiles} />
                 )}
+                {tileInfo.every((ti) => ENTITY_METADATA[ti.extendedType].hasDirection) && (
+                    <ExplosionDirectionInput selectedTiles={selectedTiles} />
+                )}
             </div>
         </>
     );
@@ -237,6 +243,38 @@ function FlipDirectionInput({ selectedTiles }: FlipDirectionInputProps) {
                     }
                 }}
             />
+        </>
+    );
+}
+
+interface ExplosionDirectionInputProps {
+    selectedTiles: E_Tile[];
+}
+
+function ExplosionDirectionInput({ selectedTiles }: ExplosionDirectionInputProps) {
+    const { value: direction } = useMemo(
+        () => computeSharedValue(selectedTiles, (tile) => getLoopholeEntityDirection(tile.entity)),
+        [selectedTiles],
+    );
+
+    return (
+        <>
+            <Label htmlFor="explosion-direction-input">Direction</Label>
+            <Button
+                variant="outline"
+                onClick={() => {
+                    window.engine?.updateEntities(
+                        selectedTiles.map((t) => t.entity),
+                        {
+                            direction: degreesToLoopholeRotation(
+                                loopholeRotationToDegrees(direction ?? 'RIGHT') + 180,
+                            ),
+                        },
+                    );
+                }}
+            >
+                Flip
+            </Button>
         </>
     );
 }

@@ -113,9 +113,16 @@ export const useAppStore = create<AppStore>()(
                 selectedTiles: {},
                 setSelectedTiles: (tiles) => {
                     set((state) => {
-                        const filteredTiles = tiles.filter(
+                        let filteredTiles = tiles.filter(
                             (t) => !state.lockedLayers[getLoopholeEntityExtendedType(t.entity)],
                         );
+                        const explosionIdx = filteredTiles.findIndex(
+                            (t) => t.entity.entityType === 'EXPLOSION',
+                        );
+                        if (explosionIdx !== -1) {
+                            filteredTiles = filteredTiles.slice(explosionIdx, explosionIdx + 1);
+                        }
+
                         return {
                             selectedTiles: Object.fromEntries(
                                 filteredTiles.map((t) => [t.entity.tID, t]),
@@ -142,7 +149,7 @@ export const useAppStore = create<AppStore>()(
                 setLockedLayer: (layer, locked) =>
                     set((state) => ({ lockedLayers: { ...state.lockedLayers, [layer]: locked } })),
 
-                editableLayers: ['SAUCE', 'WIRE'],
+                editableLayers: ['SAUCE', 'WIRE', 'EXPLOSION'],
                 setEditableLayers: (layers) => set({ editableLayers: layers }),
                 addEditableLayer: (layer) =>
                     set((state) => ({

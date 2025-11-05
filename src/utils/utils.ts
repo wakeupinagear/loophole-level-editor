@@ -22,6 +22,7 @@ import type {
     Loophole_Exit,
     Loophole_WireSprite,
     Loophole_Explosion,
+    Loophole_Int,
 } from './levelEditor/externalLevelSchema';
 import type { Position } from './engine/types';
 import type { E_Tile } from './levelEditor/scenes/grid';
@@ -165,6 +166,7 @@ interface EntityMetadata {
     tileOwnership: TileOwnership;
     tileScale: number;
     hasRotation?: boolean;
+    hasDirection?: boolean;
     hasFlipDirection?: boolean;
     hasChannel?: boolean;
     hasWireSprite?: boolean;
@@ -434,6 +436,7 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         tileOwnership: 'ONLY_TYPE_IN_TILE',
         tileScale: TILE_CENTER_FRACTION,
         dragPlacementDisabled: true,
+        hasDirection: true,
     },
 };
 
@@ -489,6 +492,14 @@ export const getLoopholeEntityDegreeRotation = (entity: Loophole_Entity): number
     return 0;
 };
 
+export const getLoopholeEntityDirection = (entity: Loophole_Entity): Loophole_Rotation | null => {
+    if ('direction' in entity) {
+        return entity.direction;
+    }
+
+    return null;
+};
+
 export const getLoopholeEntityFlipDirection = (entity: Loophole_Entity): boolean => {
     if ('flipDirection' in entity) {
         return entity.flipDirection;
@@ -526,6 +537,15 @@ export const getLoopholeExplosionPosition = (
               x: 0,
               y: explosion.startPosition + (offset?.y ?? 0),
           };
+};
+
+export const getLoopholeExplosionStartPosition = (
+    explosion: Loophole_Explosion,
+    position: Loophole_Int2,
+): Loophole_Int => {
+    return explosion.direction === 'RIGHT' || explosion.direction === 'LEFT'
+        ? position.x
+        : position.y;
 };
 
 export const calculateSelectionCenter = (tiles: E_Tile[]): Position => {

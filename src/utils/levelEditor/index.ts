@@ -26,6 +26,7 @@ import {
     getLoopholeEntityPosition,
     getLoopholeEntityPositionType,
     getLoopholeExplosionPosition,
+    getLoopholeExplosionStartPosition,
     GUY_SPRITE,
     loopholePositionToEnginePosition,
     loopholeRotationToDegrees,
@@ -135,7 +136,7 @@ export class LevelEditor extends Engine {
 
         for (const explosion of this.#level.explosions) {
             const explosionTile = this.#placeEntity(
-                { ...explosion, entityType: 'EXPLOSION', tID: v4() },
+                { ...explosion, entityType: 'EXPLOSION' },
                 false,
             );
             explosionTile.variant = 'explosion';
@@ -398,6 +399,7 @@ export class LevelEditor extends Engine {
                 newEntity.position = newPosition;
             } else {
                 newPosition = getLoopholeExplosionPosition(newEntity, offset);
+                newEntity.startPosition = getLoopholeExplosionStartPosition(newEntity, newPosition);
             }
 
             if (
@@ -451,46 +453,49 @@ export class LevelEditor extends Engine {
         for (const entity of entities) {
             group.actions.push({ type: 'remove', entity });
 
-            let newEntity: Loophole_EntityWithID;
+            let newEntity = entity;
             const positionType = getLoopholeEntityPositionType(entity);
             const position = getLoopholeEntityPosition(entity);
             const isCritical = this.#isOverlappingCriticalTile(position, positionType);
 
             if (positionType === 'CELL') {
-                if (!('position' in entity)) continue;
+                if ('position' in entity) {
+                    const currentPos = position;
+                    const dx = currentPos.x - centerPosition.x;
+                    const dy = currentPos.y - centerPosition.y;
 
-                const currentPos = position;
-                const dx = currentPos.x - centerPosition.x;
-                const dy = currentPos.y - centerPosition.y;
+                    const newPosition: Loophole_Int2 =
+                        rotation === 90
+                            ? {
+                                  x: Math.round(centerPosition.x - dy),
+                                  y: Math.round(centerPosition.y + dx),
+                              }
+                            : {
+                                  x: Math.round(centerPosition.x + dy),
+                                  y: Math.round(centerPosition.y - dx),
+                              };
 
-                const newPosition: Loophole_Int2 =
-                    rotation === 90
-                        ? {
-                              x: Math.round(centerPosition.x - dy),
-                              y: Math.round(centerPosition.y + dx),
-                          }
-                        : {
-                              x: Math.round(centerPosition.x + dy),
-                              y: Math.round(centerPosition.y - dx),
-                          };
-
-                if ('rotation' in entity) {
-                    const currentDegrees = loopholeRotationToDegrees(entity.rotation);
+                    if ('rotation' in entity) {
+                        const currentDegrees = loopholeRotationToDegrees(entity.rotation);
+                        const newDegrees = (currentDegrees + rotation + 360) % 360;
+                        newEntity = {
+                            ...entity,
+                            position: newPosition,
+                            rotation: degreesToLoopholeRotation(newDegrees),
+                        };
+                    }
+                } else if ('startPosition' in entity) {
+                    const currentDegrees = loopholeRotationToDegrees(entity.direction);
                     const newDegrees = (currentDegrees + rotation + 360) % 360;
                     newEntity = {
                         ...entity,
-                        position: newPosition,
-                        rotation: degreesToLoopholeRotation(newDegrees),
+                        startPosition: 0,
+                        direction: degreesToLoopholeRotation(newDegrees),
                     };
                 } else {
-                    newEntity = {
-                        ...entity,
-                        position: newPosition,
-                    };
+                    continue;
                 }
-            } else {
-                if (!('edgePosition' in entity)) continue;
-
+            } else if ('edgePosition' in entity) {
                 const edgePos = entity.edgePosition;
 
                 const worldX = edgePos.cell.x + (edgePos.alignment === 'RIGHT' ? 0.5 : 0);
@@ -515,6 +520,8 @@ export class LevelEditor extends Engine {
                         alignment: newAlignment,
                     },
                 };
+            } else {
+                continue;
             }
 
             const newPosition = getLoopholeEntityPosition(newEntity);
