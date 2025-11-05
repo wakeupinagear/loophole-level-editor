@@ -67,7 +67,7 @@ export type Loophole_Level = {
     //    6: white floor & red walls
     colorPalette: 0 | 1 | 2 | 3 | 4 | 5 | 6;
     // The configuration of explosions in this level.
-    explosions: Loophole_Explosions[];
+    explosions: Loophole_Explosion[];
     // The entity for the time machine that the player will spawn inside.
     entrance: Loophole_TimeMachine;
     // The position where the level exit will be created.
@@ -77,20 +77,6 @@ export type Loophole_Level = {
     // Only some entities can share the same position. See "Entity Overlap Rules" for more.
     // This array can have at most (MAX_ENTITY_COUNT - 2) elements.
     entities: Loophole_Entity[];
-};
-
-export type Loophole_Explosions = {
-    // The direction that the explosions move
-    direction: Loophole_Rotation;
-    // The time at which the explosions will reach startPosition
-    startTime: Loophole_Int;
-    // The position that explosions will reach when time = startTime.
-    // If direction is "LEFT" or "RIGHT", this refers to an x coordinate.
-    // If direction is "UP" or "DOWN", this refers to a y coordinate.
-    startPosition: Loophole_Int;
-    // A real number that determines the speed that the explosions move across the screen.
-    // For example, a value of 0.5 would mean the explosions advance every other turn.
-    speed: number;
 };
 
 export type Loophole_EntityType =
@@ -106,7 +92,8 @@ export type Loophole_EntityType =
     | 'DOOR'
     | 'WIRE'
     | 'CLEANSING_POOL'
-    | 'EXIT';
+    | 'EXIT'
+    | 'EXPLOSION';
 
 export type Loophole_Entity =
     | Loophole_TimeMachine
@@ -121,7 +108,8 @@ export type Loophole_Entity =
     | Loophole_Door
     | Loophole_Wire
     | Loophole_CleansingPool
-    | Loophole_Exit;
+    | Loophole_Exit
+    | Loophole_Explosion;
 
 export type Loophole_ExtendedEntityType =
     | Exclude<Loophole_EntityType, 'MUSHROOM'>
@@ -132,6 +120,21 @@ export type Loophole_ExtendedEntityType =
 type Loophole_EntityBase = {
     entityType: Loophole_EntityType;
 };
+
+export interface Loophole_Explosion extends Loophole_EntityBase {
+    entityType: 'EXPLOSION';
+    // The direction that the explosions move
+    direction: Loophole_Rotation;
+    // The time at which the explosions will reach startPosition
+    startTime: Loophole_Int;
+    // The position that explosions will reach when time = startTime.
+    // If direction is "LEFT" or "RIGHT", this refers to an x coordinate.
+    // If direction is "UP" or "DOWN", this refers to a y coordinate.
+    startPosition: Loophole_Int;
+    // A real number that determines the speed that the explosions move across the screen.
+    // For example, a value of 0.5 would mean the explosions advance every other turn.
+    speed: number;
+}
 
 // A time machine, including the walls and doors around it.
 export interface Loophole_TimeMachine extends Loophole_EntityBase {
@@ -238,9 +241,10 @@ export interface WithID {
 
 export type Loophole_EntityWithID = Loophole_Entity & WithID;
 
-export type Loophole_InternalLevel = Omit<Loophole_Level, 'entities'> & {
+export type Loophole_InternalLevel = Omit<Loophole_Level, 'entities' | 'explosions'> & {
     entities: Loophole_EntityWithID[];
     entrance: Loophole_Level['entrance'] & WithID;
+    explosions: (Loophole_Explosion & WithID)[];
     id: string;
 };
 

@@ -21,6 +21,7 @@ import type {
     Loophole_InternalLevel,
     Loophole_Exit,
     Loophole_WireSprite,
+    Loophole_Explosion,
 } from './levelEditor/externalLevelSchema';
 import type { Position } from './engine/types';
 import type { E_Tile } from './levelEditor/scenes/grid';
@@ -44,6 +45,7 @@ const ENTITY_TYPE_DRAW_ORDER_LIST: Loophole_EntityType[] = [
     'TIME_MACHINE',
     'SAUCE',
     'EXIT',
+    'EXPLOSION',
 ] as const;
 export const ENTITY_TYPE_DRAW_ORDER: Record<Loophole_EntityType, number> =
     ENTITY_TYPE_DRAW_ORDER_LIST.reduce(
@@ -97,7 +99,11 @@ export const getLoopholeEntityPosition = (entity: Loophole_Entity): Loophole_Int
         return entity.edgePosition.cell;
     }
 
-    return entity.position;
+    if ('position' in entity) {
+        return entity.position;
+    }
+
+    return getLoopholeExplosionPosition(entity);
 };
 
 export const loopholePositionToEnginePosition = (
@@ -136,7 +142,10 @@ export const getTimestamp = (): number => Date.now();
 const DEFAULT_EDGE_ALIGNMENT: Loophole_EdgeAlignment = 'RIGHT';
 const DEFAULT_WALL_SCALE = 0.85;
 
-export const OVERLAPPABLE_ENTITY_TYPES: Loophole_EntityType[][] = [['CURTAIN', 'DOOR']];
+export const OVERLAPPABLE_ENTITY_TYPES: Loophole_EntityType[][] = [
+    ['CURTAIN', 'DOOR'],
+    ['EXPLOSION', 'TIME_MACHINE'],
+];
 
 type TileOwnership = 'ONLY_ENTITY_IN_TILE' | 'ONLY_TYPE_IN_TILE';
 
@@ -160,6 +169,7 @@ interface EntityMetadata {
     hasChannel?: boolean;
     hasWireSprite?: boolean;
     hideInPicker?: boolean;
+    dragPlacementDisabled?: boolean;
 }
 
 export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata> = {
@@ -178,6 +188,7 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         tileOwnership: 'ONLY_ENTITY_IN_TILE',
         tileScale: TILE_CENTER_FRACTION,
         hasRotation: true,
+        dragPlacementDisabled: true,
     },
     WALL: {
         name: 'Wall',
@@ -188,7 +199,10 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         positionType: 'EDGE',
         createEntity: (position, edgeAlignment): Loophole_Wall => ({
             entityType: 'WALL',
-            edgePosition: { cell: position, alignment: edgeAlignment || DEFAULT_EDGE_ALIGNMENT },
+            edgePosition: {
+                cell: position,
+                alignment: edgeAlignment || DEFAULT_EDGE_ALIGNMENT,
+            },
         }),
         tileOwnership: 'ONLY_ENTITY_IN_TILE',
         tileScale: DEFAULT_WALL_SCALE,
@@ -202,7 +216,10 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         positionType: 'EDGE',
         createEntity: (position, edgeAlignment): Loophole_Curtain => ({
             entityType: 'CURTAIN',
-            edgePosition: { cell: position, alignment: edgeAlignment || DEFAULT_EDGE_ALIGNMENT },
+            edgePosition: {
+                cell: position,
+                alignment: edgeAlignment || DEFAULT_EDGE_ALIGNMENT,
+            },
         }),
         tileOwnership: 'ONLY_ENTITY_IN_TILE',
         tileScale: DEFAULT_WALL_SCALE,
@@ -216,7 +233,10 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         positionType: 'EDGE',
         createEntity: (position, edgeAlignment, _, flipDirection): Loophole_OneWay => ({
             entityType: 'ONE_WAY',
-            edgePosition: { cell: position, alignment: edgeAlignment || DEFAULT_EDGE_ALIGNMENT },
+            edgePosition: {
+                cell: position,
+                alignment: edgeAlignment || DEFAULT_EDGE_ALIGNMENT,
+            },
             flipDirection,
         }),
         tileOwnership: 'ONLY_ENTITY_IN_TILE',
@@ -232,7 +252,10 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         positionType: 'EDGE',
         createEntity: (position, edgeAlignment): Loophole_Glass => ({
             entityType: 'GLASS',
-            edgePosition: { cell: position, alignment: edgeAlignment || DEFAULT_EDGE_ALIGNMENT },
+            edgePosition: {
+                cell: position,
+                alignment: edgeAlignment || DEFAULT_EDGE_ALIGNMENT,
+            },
         }),
         tileOwnership: 'ONLY_ENTITY_IN_TILE',
         tileScale: DEFAULT_WALL_SCALE,
@@ -290,7 +313,10 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         positionType: 'EDGE',
         createEntity: (position, edgeAlignment): Loophole_Door => ({
             entityType: 'DOOR',
-            edgePosition: { cell: position, alignment: edgeAlignment || DEFAULT_EDGE_ALIGNMENT },
+            edgePosition: {
+                cell: position,
+                alignment: edgeAlignment || DEFAULT_EDGE_ALIGNMENT,
+            },
             channel: 0,
         }),
         tileOwnership: 'ONLY_ENTITY_IN_TILE',
@@ -391,6 +417,24 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         tileScale: TILE_CENTER_FRACTION,
         hideInPicker: true,
     },
+    EXPLOSION: {
+        name: 'Explosion',
+        description: 'An explosion that damages the player.',
+        src: 'pixel/explosion.png',
+        type: 'EXPLOSION',
+        extendedType: 'EXPLOSION',
+        positionType: 'CELL',
+        createEntity: (position, _, rotation): Loophole_Explosion => ({
+            entityType: 'EXPLOSION',
+            startPosition: rotation === 'RIGHT' || rotation === 'LEFT' ? position.x : position.y,
+            direction: rotation,
+            startTime: 0,
+            speed: 0.5,
+        }),
+        tileOwnership: 'ONLY_TYPE_IN_TILE',
+        tileScale: TILE_CENTER_FRACTION,
+        dragPlacementDisabled: true,
+    },
 };
 
 export const createLevelWithMetadata = (name: string, id?: string): Loophole_InternalLevel => ({
@@ -469,6 +513,21 @@ export const getLoopholeWireSprite = (entity: Loophole_Entity): Loophole_WireSpr
     return null;
 };
 
+export const getLoopholeExplosionPosition = (
+    explosion: Loophole_Explosion,
+    offset?: Loophole_Int2,
+): Loophole_Int2 => {
+    return explosion.direction === 'RIGHT' || explosion.direction === 'LEFT'
+        ? {
+              x: explosion.startPosition + (offset?.x ?? 0),
+              y: 0,
+          }
+        : {
+              x: 0,
+              y: explosion.startPosition + (offset?.y ?? 0),
+          };
+};
+
 export const calculateSelectionCenter = (tiles: E_Tile[]): Position => {
     if (tiles.length === 0) {
         return { x: 0, y: 0 };
@@ -497,3 +556,11 @@ export const calculateSelectionCenter = (tiles: E_Tile[]): Position => {
 
 export const WIRE_CORNER_SPRITE = 'WireCorner';
 export const GUY_SPRITE = 'Guy';
+
+export const formatToSnakeCase = (str: string): string => {
+    return str
+        .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+        .replace(/[\s-]+/g, '_')
+        .replace(/[^\w_]/g, '')
+        .toLowerCase();
+};

@@ -25,6 +25,7 @@ import {
     getLoopholeEntityExtendedType,
     getLoopholeEntityPosition,
     getLoopholeEntityPositionType,
+    getLoopholeExplosionPosition,
     GUY_SPRITE,
     loopholePositionToEnginePosition,
     loopholeRotationToDegrees,
@@ -131,6 +132,14 @@ export class LevelEditor extends Engine {
         };
         const exitTile = this.#placeEntity(this.#exitEntity, false);
         exitTile.variant = 'exit';
+
+        for (const explosion of this.#level.explosions) {
+            const explosionTile = this.#placeEntity(
+                { ...explosion, entityType: 'EXPLOSION', tID: v4() },
+                false,
+            );
+            explosionTile.variant = 'explosion';
+        }
 
         getAppStore().setSelectedTiles([]);
         this.forceRender();
@@ -381,12 +390,14 @@ export class LevelEditor extends Engine {
                     ...newEntity.edgePosition,
                     cell: newPosition,
                 };
-            } else {
+            } else if ('position' in newEntity) {
                 newPosition = {
                     x: position.x + offset.x,
                     y: position.y + offset.y,
                 };
                 newEntity.position = newPosition;
+            } else {
+                newPosition = getLoopholeExplosionPosition(newEntity, offset);
             }
 
             if (
@@ -608,6 +619,8 @@ export class LevelEditor extends Engine {
             } else if (entity.tID === this.#exitEntity?.tID && entity.entityType === 'EXIT') {
                 this.#exitEntity = entity;
                 this.#level.exitPosition = entity.position;
+            } else if (entity.entityType === 'EXPLOSION') {
+                this.#level.explosions.push(entity);
             } else {
                 this.#level.entities.push(entity);
             }
@@ -622,7 +635,11 @@ export class LevelEditor extends Engine {
             this.#stashTile(tile);
         }
         if (this.#level && updateLevel) {
-            this.#level.entities = this.#level.entities.filter((e) => e.tID !== entity.tID);
+            if (entity.entityType === 'EXPLOSION') {
+                this.#level.explosions = this.#level.explosions.filter((e) => e.tID !== entity.tID);
+            } else {
+                this.#level.entities = this.#level.entities.filter((e) => e.tID !== entity.tID);
+            }
         }
     }
 
@@ -669,7 +686,7 @@ export class LevelEditor extends Engine {
         const { tileOwnership: newTileOwnership } =
             ENTITY_METADATA[convertLoopholeTypeToExtendedType(entityType)];
 
-        return this.#level.entities.filter((entity) => {
+        return [...this.#level.entities, ...this.#level.explosions].filter((entity) => {
             const {
                 tileOwnership,
                 positionType: entityPositionType,

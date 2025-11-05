@@ -2,6 +2,7 @@ import {
     calculateSelectionCenter,
     degreesToLoopholeRotation,
     ENTITY_METADATA,
+    getLoopholeExplosionPosition,
     loopholeRotationToDegrees,
     TILE_SIZE,
 } from '@/utils/utils';
@@ -102,6 +103,7 @@ class E_TileCursor extends Entity {
                 hasRotation,
                 hasFlipDirection,
                 type,
+                dragPlacementDisabled,
             } = ENTITY_METADATA[brushEntityType];
             this.#tileImage.imageName = name;
 
@@ -172,7 +174,12 @@ class E_TileCursor extends Entity {
                 );
                 setSelectedTiles(tiles);
                 this.#placedTileDuringDrag.add(this.#getTileKey(tilePosition, edgeAlignment));
-            } else if (leftButton.down && isDraggingToPlace && this.#dragStartTilePosition) {
+            } else if (
+                leftButton.down &&
+                isDraggingToPlace &&
+                this.#dragStartTilePosition &&
+                !dragPlacementDisabled
+            ) {
                 // Continue dragging - place tiles along the line
                 this.#handleDragPlacement(
                     tilePosition,
@@ -555,12 +562,15 @@ class E_DragCursor extends Entity {
                     ...newEntity.edgePosition,
                     cell: newPosition,
                 };
-            } else {
+            } else if ('position' in newEntity) {
                 newPosition = {
                     x: newEntity.position.x + this.#dragOffset.x,
                     y: newEntity.position.y + this.#dragOffset.y,
                 };
                 newEntity.position = newPosition;
+            } else if (newEntity.entityType === 'EXPLOSION') {
+                newPosition = getLoopholeExplosionPosition(newEntity, this.#dragOffset);
+                newEntity.startPosition = newPosition.x;
             }
 
             tile.entity = newEntity;

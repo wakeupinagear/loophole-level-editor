@@ -28,7 +28,7 @@ import { E_InfiniteShape } from './InfiniteShape';
 const ACTIVE_TILE_OPACITY = 0.3;
 const TILE_HIGHLIGHT_SCALE_MULT = 1.2;
 
-type TileVariant = 'default' | 'entrance' | 'exit';
+type TileVariant = 'default' | 'entrance' | 'exit' | 'explosion';
 
 export class E_Tile extends Entity {
     #editor: LevelEditor;

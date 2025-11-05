@@ -13,6 +13,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
+import { formatToSnakeCase } from '@/utils/utils';
 
 const DEFAULT_LEVEL_NAME = 'Untitled Level';
 
@@ -39,7 +40,10 @@ export default function TopPanel() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${name}.json`;
+        a.download = `${formatToSnakeCase(name || DEFAULT_LEVEL_NAME)}.json`;
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     };
 
     const resetViewport = () => {
