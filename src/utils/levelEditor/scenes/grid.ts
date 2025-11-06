@@ -30,6 +30,20 @@ const TILE_HIGHLIGHT_SCALE_MULT = 1.2;
 
 type TileVariant = 'default' | 'entrance' | 'exit' | 'explosion';
 
+export class E_TileHighlight extends Entity {
+    #tile: E_Tile;
+
+    constructor(tile: E_Tile) {
+        super('tile_highlight');
+
+        this.#tile = tile;
+    }
+
+    get tile(): E_Tile {
+        return this.#tile;
+    }
+}
+
 export class E_Tile extends Entity {
     #editor: LevelEditor;
     #entity: Loophole_EntityWithID;
@@ -39,9 +53,10 @@ export class E_Tile extends Entity {
     #initialized: boolean = false;
 
     #tileImage: C_Image;
+    #tileShape: C_Shape;
     #positionLerp: C_Lerp<Position>;
 
-    #highlightEntity: Entity;
+    #highlightEntity: E_TileHighlight;
     #pointerTarget: C_PointerTarget;
     #highlightShape: C_Shape;
     #opacityLerp: C_Lerp<number>;
@@ -60,21 +75,29 @@ export class E_Tile extends Entity {
         this.#positionLerp = new C_LerpPosition(this, 20);
         this.addComponents(this.#tileImage, this.#positionLerp);
 
-        this.#highlightEntity = new Entity('target');
+        this.#highlightEntity = new E_TileHighlight(this);
         this.#pointerTarget = new C_PointerTarget();
         this.#pointerTarget.canInteract = false;
         this.#highlightShape = new C_Shape('shape', 'RECT', {
             fillStyle: 'white',
             globalAlpha: 0,
-        }).setScale(1 / TILE_HIGHLIGHT_SCALE_MULT);
+        }).setZIndex(1);
         this.#opacityLerp = new C_LerpOpacity(this.#highlightShape, 5);
+        this.#tileShape = new C_Shape('tile', 'RECT', {
+            fillStyle: 'white',
+        });
         this.#highlightEntity.addComponents(
             this.#pointerTarget,
+            this.#tileShape,
             this.#highlightShape,
             this.#opacityLerp,
         );
 
-        this.addEntities(this.#highlightEntity);
+        if (this.entity.entityType === 'EXPLOSION') {
+            this.#editor.addSceneEntities(GridScene.name, this.#highlightEntity);
+        } else {
+            this.addEntities(this.#highlightEntity);
+        }
     }
 
     get entity(): Loophole_EntityWithID {
@@ -113,6 +136,10 @@ export class E_Tile extends Entity {
         this.#initialized = initialized;
     }
 
+    get highlightEntity(): Entity {
+        return this.#highlightEntity;
+    }
+
     override update(deltaTime: number) {
         const { brushEntityType, selectedTiles, setSelectedTiles, lockedLayers } = getAppStore();
         this.#pointerTarget.canInteract = Boolean(!lockedLayers[this.#type]);
@@ -136,6 +163,8 @@ export class E_Tile extends Entity {
         }
 
         this.#opacityLerp.target = active ? ACTIVE_TILE_OPACITY : 0;
+
+        this.#updatePosition();
 
         return super.update(deltaTime);
     }
@@ -176,10 +205,18 @@ export class E_Tile extends Entity {
         this.setZIndex(ENTITY_TYPE_DRAW_ORDER[this.#entity.entityType] + 1);
 
         const wireSprite = getLoopholeWireSprite(this.#entity);
-        if (wireSprite === 'CORNER') {
-            this.#tileImage.imageName = WIRE_CORNER_SPRITE;
+        if (this.entity.entityType === 'EXPLOSION') {
+            this.#tileShape.setEnabled(true);
+            this.#highlightShape.setScale(1);
+            this.#tileShape.style.fillStyle = 'orange';
         } else {
-            this.#tileImage.imageName = name;
+            this.#tileShape.setEnabled(false);
+            this.#highlightShape.setScale(1 / TILE_HIGHLIGHT_SCALE_MULT);
+            if (wireSprite === 'CORNER') {
+                this.#tileImage.imageName = WIRE_CORNER_SPRITE;
+            } else {
+                this.#tileImage.imageName = name;
+            }
         }
 
         this.#highlightEntity.setEnabled(true).setScale(
@@ -190,6 +227,31 @@ export class E_Tile extends Entity {
                       y: TILE_HIGHLIGHT_SCALE_MULT,
                   },
         );
+
+        this.#updatePosition();
+    }
+
+    #updatePosition() {
+        if (this.#entity.entityType === 'EXPLOSION' && this.#editor.canvasSize) {
+            const length = this.#editor.canvasSize.y / this.#editor.camera.zoom;
+            this.#highlightEntity
+                .setScale(
+                    this.#entity.direction === 'RIGHT' || this.#entity.direction === 'LEFT'
+                        ? { x: TILE_SIZE, y: length }
+                        : { x: length, y: TILE_SIZE },
+                )
+                .setPosition(
+                    this.#entity.direction === 'RIGHT' || this.#entity.direction === 'LEFT'
+                        ? {
+                              x: this.position.x,
+                              y: -this.#editor.camera.position.y / this.#editor.camera.zoom,
+                          }
+                        : {
+                              x: -this.#editor.camera.position.x / this.#editor.camera.zoom,
+                              y: this.position.y,
+                          },
+                );
+        }
     }
 }
 

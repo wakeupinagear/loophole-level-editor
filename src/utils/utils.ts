@@ -559,13 +559,12 @@ export const calculateSelectionCenter = (tiles: E_Tile[]): Position => {
     let maxY = Number.NEGATIVE_INFINITY;
 
     tiles.forEach((tile) => {
-        const pos = getLoopholeEntityPosition(tile.entity);
-        const edgeAlign = getLoopholeEntityEdgeAlignment(tile.entity);
-        const enginePos = loopholePositionToEnginePosition(pos, edgeAlign);
-        if (enginePos.x < minX) minX = enginePos.x;
-        if (enginePos.y < minY) minY = enginePos.y;
-        if (enginePos.x > maxX) maxX = enginePos.x;
-        if (enginePos.y > maxY) maxY = enginePos.y;
+        const pos =
+            tile.entity.entityType === 'EXPLOSION' ? tile.highlightEntity.position : tile.position;
+        if (pos.x < minX) minX = pos.x;
+        if (pos.y < minY) minY = pos.y;
+        if (pos.x > maxX) maxX = pos.x;
+        if (pos.y > maxY) maxY = pos.y;
     });
 
     return {

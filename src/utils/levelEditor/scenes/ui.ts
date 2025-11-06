@@ -30,7 +30,7 @@ import {
 } from '@/utils/engine/components/Lerp';
 import { positionsEqual } from '@/utils/engine/utils';
 import { C_Shape } from '@/utils/engine/components/Shape';
-import { E_Tile } from './grid';
+import { E_Tile, E_TileHighlight } from './grid';
 import { C_PointerTarget } from '@/utils/engine/components/PointerTarget';
 import { v4 } from 'uuid';
 
@@ -385,10 +385,12 @@ class E_SelectionCursor extends Entity {
                     y: bottomRight.y - topLeft.y,
                 });
 
-                const hoveredTiles = this.#editor.pointerSystem
-                    .getPointerTargetsWithinBox(topLeft, bottomRight)
-                    .map((t) => t.entity?.parent)
-                    .filter((e) => e?.typeString === E_Tile.name) as E_Tile[];
+                const hoveredTiles = (
+                    this.#editor.pointerSystem
+                        .getPointerTargetsWithinBox(topLeft, bottomRight)
+                        .map((t) => t.entity)
+                        .filter((e) => e?.typeString === E_TileHighlight.name) as E_TileHighlight[]
+                ).map((t) => t.tile);
                 setSelectedTiles(hoveredTiles);
 
                 updated = true;
@@ -458,10 +460,7 @@ class E_DragCursor extends Entity {
         const active = hasSelection && !brushEntityType;
         if (active) {
             const center = calculateSelectionCenter(selectedTileArray);
-            this.#positionLerp.target = {
-                x: center.x * TILE_SIZE,
-                y: center.y * TILE_SIZE,
-            };
+            this.#positionLerp.target = center;
             if (this.#opacityLerp.target === 0) {
                 this.setPosition(this.#positionLerp.target);
             }
