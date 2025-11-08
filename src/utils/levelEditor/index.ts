@@ -165,6 +165,13 @@ export class LevelEditor extends Engine {
             setCameraTarget(null);
         }
 
+        if (this.getKey('-').pressed) {
+            this.zoomCamera(-0.1 / this.options.zoomSpeed);
+        }
+        if (this.getKey('=').pressed) {
+            this.zoomCamera(0.1 / this.options.zoomSpeed);
+        }
+
         return false;
     }
 
