@@ -11,7 +11,7 @@ export default function TilePicker() {
 
     return (
         <Panel className="flex h-min w-fit">
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2">
                 {Object.entries(ENTITY_METADATA).map(
                     ([entityType, metadata]) =>
                         !metadata.hideInPicker && (
@@ -22,7 +22,7 @@ export default function TilePicker() {
                                         className={cn(
                                             'size-16 aspect-square pixelated-image border-2 border-transparent p-1 rounded-lg transition-colors cursor-grab active:cursor-grabbing',
                                             {
-                                                'border-sidebar': brushEntityType === entityType,
+                                                'border-background': brushEntityType === entityType,
                                             },
                                         )}
                                         onClick={() =>

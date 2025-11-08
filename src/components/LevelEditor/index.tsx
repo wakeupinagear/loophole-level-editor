@@ -67,11 +67,11 @@ export function LevelEditorComponent() {
             </div>
             <div className="h-full flex flex-col p-4 gap-4 z-10 pointer-events-none">
                 <TopPanel />
-                <div className="h-full flex flex-col gap-4 max-w-[18.5rem]">
+                <div className="h-full flex flex-col gap-4 max-w-54">
                     <TilePicker />
                     <LayerButtons />
-                    <EntityInspector className="mt-auto" />
                 </div>
+                <EntityInspector className="mt-auto w-fit" />
                 <div
                     className={clsx('fixed bottom-4 right-4 text-right transition-opacity', {
                         'opacity-0': !showEngineStats,

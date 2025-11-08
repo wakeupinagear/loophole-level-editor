@@ -179,6 +179,7 @@ export const useAppStore = create<AppStore>()(
                         editableLayers: state.editableLayers.includes(layer)
                             ? state.editableLayers
                             : [...state.editableLayers, layer],
+                        lockedLayers: { ...state.lockedLayers, [layer]: true },
                     })),
                 removeEditableLayer: (layer) =>
                     set((state) => ({

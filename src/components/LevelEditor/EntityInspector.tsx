@@ -197,7 +197,7 @@ function WireInput({ selectedTiles }: WireInputProps) {
             <ToggleGroup
                 id="wire-input"
                 type="single"
-                variant="default"
+                variant="outline"
                 value={sharedValue && sprite !== null ? sprite : undefined}
                 onValueChange={(value) => {
                     if (value !== undefined) {
