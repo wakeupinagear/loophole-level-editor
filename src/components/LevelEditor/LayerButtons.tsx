@@ -52,10 +52,10 @@ export function LayerButtons() {
                             key={layer}
                             aria-selected={isLocked}
                             data-on={isLocked}
-                            variant="outline"
+                            variant="default"
                             className={clsx({
-                                '!bg-black !text-card': !isLocked,
-                                '!bg-card !border-accent !text-accent-foreground': isLocked,
+                                '!bg-background !text-foreground': !isLocked,
+                                '!bg-accent !border-accent !text-accent-foreground': isLocked,
                             })}
                         >
                             {isLocked ? <Lock /> : <Unlock />}
@@ -65,7 +65,7 @@ export function LayerButtons() {
                 })}
                 <div className="flex items-center gap-2">
                     <Button
-                        variant="outline"
+                        variant="loophole"
                         size="icon-sm"
                         onClick={() => {
                             for (const layer of ALL_ENTITY_TYPES) {
@@ -77,7 +77,7 @@ export function LayerButtons() {
                     </Button>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="icon-sm">
+                            <Button variant="loophole" size="icon-sm">
                                 <Plus />
                             </Button>
                         </DropdownMenuTrigger>

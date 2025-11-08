@@ -252,6 +252,7 @@ export type Loophole_InternalLevel = Omit<
     explosions: (Loophole_Explosion & WithID)[];
     id: string;
     colorPalette: Loophole_ColorPalette;
+    updatedAt: number;
 };
 
 /* =============== Constraints =============== */

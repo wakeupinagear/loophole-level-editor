@@ -456,6 +456,7 @@ export const createLevelWithMetadata = (name: string, id?: string): Loophole_Int
     id: id ?? v4(),
     explosions: [],
     imageFile: '',
+    updatedAt: Date.now(),
 });
 
 export const loopholeRotationToDegrees = (rotation: Loophole_Rotation): number => {
@@ -640,3 +641,5 @@ export const COLOR_PALETTE_METADATA: Record<
         image: 'color-screenshots/7.png',
     },
 };
+
+export const DEFAULT_LEVEL_NAME = 'Untitled Level';

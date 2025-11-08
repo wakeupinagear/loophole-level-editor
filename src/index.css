@@ -141,61 +141,6 @@ h2 {
     --tracking-normal: normal;
 }
 
-.dark {
-    --background: oklch(0.2104 0.0094 264.3508);
-    --foreground: oklch(0.9618 0.0004 247.824);
-    --card: oklch(0.2104 0.0094 264.3508);
-    --card-foreground: oklch(0.9618 0.0004 247.824);
-    --popover: oklch(0.2104 0.0094 264.3508);
-    --popover-foreground: oklch(0.9618 0.0004 247.824);
-    --primary: oklch(0.6819 0.0038 247.88);
-    --primary-foreground: oklch(0.2104 0.0094 264.3508);
-    --secondary: oklch(0.3205 0.0023 247.8967);
-    --secondary-foreground: oklch(0.9232 0.0009 247.8303);
-    --muted: oklch(0.2692 0.0018 247.8917);
-    --muted-foreground: oklch(0.6819 0.0038 247.88);
-    --accent: oklch(0.3205 0.0023 247.8967);
-    --accent-foreground: oklch(0.9232 0.0009 247.8303);
-    --destructive: oklch(0.6356 0.2082 25.3782);
-    --destructive-foreground: oklch(0.2104 0.0094 264.3508);
-    --border: oklch(0.4175 0.0032 247.9026);
-    --input: oklch(0.3205 0.0023 247.8967);
-    --ring: oklch(0.6819 0.0038 247.88);
-    --chart-1: oklch(0.4529 0.0144 285.8089);
-    --chart-2: oklch(0.5808 0.0193 285.7823);
-    --chart-3: oklch(0.7119 0.0129 286.0684);
-    --chart-4: oklch(0.8372 0.0071 286.2455);
-    --chart-5: oklch(0.958 0.0018 286.366);
-    --radius: 0.3rem;
-    --sidebar: oklch(0.155 0.0051 264.4173);
-    --sidebar-foreground: oklch(0.9618 0.0004 247.824);
-    --sidebar-primary: oklch(0.2622 0.0133 264.3133);
-    --sidebar-primary-foreground: oklch(0.9618 0.0004 247.824);
-    --sidebar-accent: oklch(0.2104 0.0094 264.3508);
-    --sidebar-accent-foreground: oklch(0.9618 0.0004 247.824);
-    --sidebar-border: oklch(0.2315 0.011 264.3336);
-    --sidebar-ring: oklch(0.4936 0.0304 264.2445);
-    --font-sans: 'Inter', sans-serif;
-    --font-serif: 'Lora', serif;
-    --font-mono: 'Fira Code', monospace;
-    --shadow-color: hsl(0 0% 0%);
-    --shadow-opacity: 0.3;
-    --shadow-blur: 8px;
-    --shadow-spread: -2px;
-    --shadow-offset-x: 0px;
-    --shadow-offset-y: 2px;
-    --letter-spacing: normal;
-    --spacing: 0.25rem;
-    --shadow-2xs: 0px 2px 8px -2px hsl(0 0% 0% / 0.15);
-    --shadow-xs: 0px 2px 8px -2px hsl(0 0% 0% / 0.15);
-    --shadow-sm: 0px 2px 8px -2px hsl(0 0% 0% / 0.3), 0px 1px 2px -3px hsl(0 0% 0% / 0.3);
-    --shadow: 0px 2px 8px -2px hsl(0 0% 0% / 0.3), 0px 1px 2px -3px hsl(0 0% 0% / 0.3);
-    --shadow-md: 0px 2px 8px -2px hsl(0 0% 0% / 0.3), 0px 2px 4px -3px hsl(0 0% 0% / 0.3);
-    --shadow-lg: 0px 2px 8px -2px hsl(0 0% 0% / 0.3), 0px 4px 6px -3px hsl(0 0% 0% / 0.3);
-    --shadow-xl: 0px 2px 8px -2px hsl(0 0% 0% / 0.3), 0px 8px 10px -3px hsl(0 0% 0% / 0.3);
-    --shadow-2xl: 0px 2px 8px -2px hsl(0 0% 0% / 0.75);
-}
-
 @layer base {
     * {
         @apply border-border outline-ring/50;
@@ -204,4 +149,125 @@ h2 {
         @apply bg-background text-foreground;
         letter-spacing: var(--tracking-normal);
     }
+}
+
+/* Color Palette 1: Reddish orange ground, greenish blue walls */
+.color-palette-one {
+    --primary: oklch(0.5 0.15 25);
+    --primary-foreground: oklch(1 0 0);
+    --secondary: oklch(0.75 0.12 200);
+    --secondary-foreground: oklch(0.2 0.01 0);
+    --accent: oklch(0.7 0.18 30);
+    --accent-foreground: oklch(0.15 0.01 0);
+    --muted: oklch(0.85 0.08 25);
+    --muted-foreground: oklch(0.35 0.06 25);
+    --border: oklch(0.7 0.12 25);
+    --input: oklch(0.92 0.08 25);
+    --ring: oklch(0.5 0.15 25);
+    --destructive: oklch(0.65 0.22 30);
+}
+
+/* Color Palette 2: Deep blue ground, red brown walls */
+.color-palette-two {
+    --primary: oklch(0.55 0.18 260);
+    --primary-foreground: oklch(0.98 0.01 0);
+    --secondary: oklch(0.68 0.2 20);
+    --secondary-foreground: oklch(0.15 0.01 0);
+    --accent: oklch(0.62 0.2 15);
+    --accent-foreground: oklch(0.15 0.01 0);
+    --muted: oklch(0.75 0.12 260);
+    --muted-foreground: oklch(0.35 0.14 260);
+    --border: oklch(0.65 0.14 260);
+    --input: oklch(0.88 0.1 260);
+    --ring: oklch(0.55 0.18 260);
+    --destructive: oklch(0.72 0.24 20);
+}
+
+/* Color Palette 3: Plum purple ground, red brown walls */
+.color-palette-three {
+    --primary: oklch(0.58 0.18 290);
+    --primary-foreground: oklch(0.98 0.01 0);
+    --secondary: oklch(0.68 0.2 20);
+    --secondary-foreground: oklch(0.15 0.01 0);
+    --accent: oklch(0.62 0.18 295);
+    --accent-foreground: oklch(0.98 0.01 0);
+    --muted: oklch(0.78 0.12 290);
+    --muted-foreground: oklch(0.38 0.14 290);
+    --border: oklch(0.68 0.14 290);
+    --input: oklch(0.88 0.1 290);
+    --ring: oklch(0.58 0.18 290);
+    --destructive: oklch(0.72 0.24 20);
+}
+
+/* Color Palette 4: Maroon floor, dark purple walls */
+.color-palette-four {
+    --primary: oklch(0.55 0.2 320);
+    --primary-foreground: oklch(0.98 0.01 0);
+    --secondary: oklch(0.65 0.22 0);
+    --secondary-foreground: oklch(0.15 0.01 0);
+    --accent: oklch(0.62 0.2 15);
+    --accent-foreground: oklch(0.98 0.01 0);
+    --muted: oklch(0.75 0.12 320);
+    --muted-foreground: oklch(0.38 0.16 320);
+    --border: oklch(0.65 0.16 320);
+    --input: oklch(0.88 0.1 320);
+    --ring: oklch(0.55 0.2 320);
+    --destructive: oklch(0.72 0.26 0);
+}
+
+/* Color Palette 5: Blueish white floors, dark aqua walls */
+.color-palette-five {
+    --primary: oklch(0.4 0.14 200);
+    --primary-foreground: oklch(0.98 0.01 0);
+    --secondary: oklch(0.75 0.14 200);
+    --secondary-foreground: oklch(0.2 0.01 0);
+    --accent: oklch(0.65 0.12 190);
+    --accent-foreground: oklch(0.15 0.01 0);
+    --muted: oklch(0.82 0.08 200);
+    --muted-foreground: oklch(0.38 0.1 200);
+    --border: oklch(0.68 0.1 200);
+    --input: oklch(0.91 0.06 200);
+    --ring: oklch(0.4 0.14 200);
+    --destructive: oklch(0.65 0.22 30);
+}
+
+/* Color Palette 6: Fluorescent blue ground, greenish walls */
+.color-palette-six {
+    --primary: oklch(0.56 0.16 260);
+    --primary-foreground: oklch(0.98 0.01 0);
+    --secondary: oklch(0.65 0.14 130);
+    --secondary-foreground: oklch(0.15 0.01 0);
+    --accent: oklch(0.6 0.14 255);
+    --accent-foreground: oklch(0.98 0.01 0);
+    --muted: oklch(0.76 0.1 260);
+    --muted-foreground: oklch(0.42 0.12 260);
+    --border: oklch(0.68 0.12 260);
+    --input: oklch(0.88 0.08 260);
+    --ring: oklch(0.56 0.16 260);
+    --destructive: oklch(0.68 0.18 130);
+}
+
+/* Color Palette 7: Reddish white floors, maroon walls */
+.color-palette-seven {
+    --primary: oklch(0.58 0.2 320);
+    --primary-foreground: oklch(0.98 0.01 0);
+    --secondary: oklch(0.75 0.16 30);
+    --secondary-foreground: oklch(0.15 0.01 0);
+    --accent: oklch(0.68 0.18 25);
+    --accent-foreground: oklch(0.98 0.01 0);
+    --muted: oklch(0.82 0.1 20);
+    --muted-foreground: oklch(0.4 0.14 320);
+    --border: oklch(0.72 0.12 25);
+    --input: oklch(0.91 0.08 20);
+    --ring: oklch(0.58 0.2 320);
+    --destructive: oklch(0.72 0.24 0);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    @apply transition-colors;
 }

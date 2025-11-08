@@ -15,7 +15,7 @@ interface AppStore {
     levels: Record<string, Loophole_InternalLevel>;
     levelHashes: Record<string, number>;
     activeLevelID: string;
-    addLevel: (level: Loophole_InternalLevel) => void;
+    addLevel: (level: Loophole_InternalLevel, makeActive?: boolean) => void;
     setActiveLevelID: (levelID: string) => void;
     removeLevel: (levelID: string) => void;
     updateLevel: (
@@ -66,24 +66,44 @@ export const useAppStore = create<AppStore>()(
                     [defaultLevel.id]: Math.random(),
                 },
                 activeLevelID: defaultLevel.id,
-                addLevel: (level) =>
+                addLevel: (level, makeActive = false) =>
                     set((state) => ({
                         levels: { ...state.levels, [level.id]: level },
                         levelHashes: { ...state.levelHashes, [level.id]: Math.random() },
+                        activeLevelID: makeActive ? level.id : state.activeLevelID,
                     })),
-                setActiveLevelID: (levelID: string) => set({ activeLevelID: levelID }),
-                removeLevel: (levelID: string) =>
+                setActiveLevelID: (levelID: string) =>
                     set((state) => ({
-                        levels: Object.fromEntries(
-                            Object.entries(state.levels).filter(([id]) => id !== levelID),
-                        ),
+                        activeLevelID: levelID,
+                        levelHashes: { ...state.levelHashes, [levelID]: Math.random() },
                     })),
+                removeLevel: (levelID: string) =>
+                    set((state) => {
+                        const newLevel = createLevelWithMetadata('');
+                        return {
+                            levels: {
+                                ...Object.fromEntries(
+                                    Object.entries(state.levels).filter(([id]) => id !== levelID),
+                                ),
+                                [newLevel.id]: newLevel,
+                            },
+                            levelHashes: {
+                                ...Object.fromEntries(
+                                    Object.entries(state.levelHashes).filter(
+                                        ([id]) => id !== levelID,
+                                    ),
+                                ),
+                                [newLevel.id]: Math.random(),
+                            },
+                            activeLevelID: newLevel.id,
+                        };
+                    }),
                 updateLevel: (id, level, sendToEditor = false) => {
                     set((state) => ({
                         levels: Object.fromEntries(
                             Object.entries(state.levels).map(([currID, l]) => [
                                 currID,
-                                currID === id ? { ...l, ...level } : l,
+                                currID === id ? { ...l, ...level, updatedAt: Date.now() } : l,
                             ]),
                         ),
                         levelHashes: {
@@ -96,7 +116,10 @@ export const useAppStore = create<AppStore>()(
                     set((state) => ({
                         levels: {
                             ...state.levels,
-                            [id]: createLevelWithMetadata(state.levels[id].name ?? '', id),
+                            [id]: {
+                                ...createLevelWithMetadata(state.levels[id].name ?? '', id),
+                                updatedAt: Date.now(),
+                            },
                         },
                         levelHashes: { ...state.levelHashes, [id]: Math.random() },
                     }));

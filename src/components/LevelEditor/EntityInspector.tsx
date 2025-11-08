@@ -123,10 +123,10 @@ function MultiTileContent({ selectedTiles }: MultiTileContentProps) {
             <div className="grid grid-cols-[min-content_1fr] gap-2 items-center justify-items-start">
                 <Label>Rotate</Label>
                 <div className="flex gap-2">
-                    <Button size="icon-lg" variant="outline" onClick={() => rotateEntities(-90)}>
+                    <Button size="icon-lg" variant="loophole" onClick={() => rotateEntities(-90)}>
                         <RotateCcw />
                     </Button>
-                    <Button size="icon-lg" variant="outline" onClick={() => rotateEntities(90)}>
+                    <Button size="icon-lg" variant="loophole" onClick={() => rotateEntities(90)}>
                         <RotateCw />
                     </Button>
                 </div>
@@ -197,7 +197,7 @@ function WireInput({ selectedTiles }: WireInputProps) {
             <ToggleGroup
                 id="wire-input"
                 type="single"
-                variant="outline"
+                variant="default"
                 value={sharedValue && sprite !== null ? sprite : undefined}
                 onValueChange={(value) => {
                     if (value !== undefined) {
@@ -261,7 +261,7 @@ function ExplosionDirectionInput({ selectedTiles }: ExplosionDirectionInputProps
         <>
             <Label htmlFor="explosion-direction-input">Direction</Label>
             <Button
-                variant="outline"
+                variant="loophole"
                 onClick={() => {
                     window.engine?.updateEntities(
                         selectedTiles.map((t) => t.entity),

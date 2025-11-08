@@ -1,5 +1,5 @@
 import { LevelEditor } from '@/utils/levelEditor';
-import { useAppStore, useSettingsStore } from '@/utils/stores';
+import { useAppStore, useSettingsStore, useCurrentLevel } from '@/utils/stores';
 import { useEffect, useRef } from 'react';
 import { EngineCanvas } from '../engine/EngineCanvas';
 import TopPanel from './TopPanel';
@@ -8,6 +8,7 @@ import { FPSCounter } from '../engine/FPSCounter';
 import { LayerButtons } from './LayerButtons';
 import { EntityInspector } from './EntityInspector';
 import type { Loophole_InternalLevel } from '@/utils/levelEditor/externalLevelSchema';
+import { COLOR_PALETTE_METADATA } from '@/utils/utils';
 import clsx from 'clsx';
 
 export function LevelEditorComponent() {
@@ -24,10 +25,21 @@ export function LevelEditorComponent() {
     const level = levels[activeLevelID];
     const levelHash = levelHashes[activeLevelID];
     const prevLevelHash = useRef<number | null>(null);
+    const currentLevel = useCurrentLevel();
+
+    const colorPaletteClass = currentLevel
+        ? COLOR_PALETTE_METADATA[currentLevel.colorPalette as keyof typeof COLOR_PALETTE_METADATA]
+              ?.class
+        : 'color-palette-one';
 
     useEffect(() => {
         const onLevelChanged = (updatedLevel: Loophole_InternalLevel) => {
-            updateLevel(level.id, updatedLevel);
+            updateLevel(level.id, {
+                entities: updatedLevel.entities,
+                entrance: updatedLevel.entrance,
+                exitPosition: updatedLevel.exitPosition,
+                explosions: updatedLevel.explosions,
+            });
         };
         if (!window.engine) {
             levelEditorRef.current = new LevelEditor(onLevelChanged);
@@ -45,7 +57,7 @@ export function LevelEditorComponent() {
     }, [activeLevelID, levelHash, level, updateLevel]);
 
     return (
-        <div className="h-screen w-screen flex flex-col">
+        <div className={clsx('h-screen w-screen flex flex-col', colorPaletteClass)}>
             <div className="fixed top-0 left-0">
                 <EngineCanvas
                     engineRef={levelEditorRef}
