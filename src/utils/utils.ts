@@ -583,3 +583,60 @@ export const formatToSnakeCase = (str: string): string => {
         .replace(/[^\w_]/g, '')
         .toLowerCase();
 };
+
+export const Loophole_ColorPalette = {
+    ONE: 0,
+    TWO: 1,
+    THREE: 2,
+    FOUR: 3,
+    FIVE: 4,
+    SIX: 5,
+    SEVEN: 6,
+} as const;
+export type Loophole_ColorPalette =
+    (typeof Loophole_ColorPalette)[keyof typeof Loophole_ColorPalette];
+
+export const COLOR_PALETTE_METADATA: Record<
+    Loophole_ColorPalette,
+    {
+        name: string;
+        class: string;
+        image: string;
+    }
+> = {
+    [Loophole_ColorPalette.ONE]: {
+        name: 'One',
+        class: 'color-palette-one',
+        image: 'color-screenshots/1.png',
+    },
+    [Loophole_ColorPalette.TWO]: {
+        name: 'Two',
+        class: 'color-palette-two',
+        image: 'color-screenshots/2.png',
+    },
+    [Loophole_ColorPalette.THREE]: {
+        name: 'Three',
+        class: 'color-palette-three',
+        image: 'color-screenshots/3.png',
+    },
+    [Loophole_ColorPalette.FOUR]: {
+        name: 'Four',
+        class: 'color-palette-four',
+        image: 'color-screenshots/4.png',
+    },
+    [Loophole_ColorPalette.FIVE]: {
+        name: 'Five',
+        class: 'color-palette-five',
+        image: 'color-screenshots/5.png',
+    },
+    [Loophole_ColorPalette.SIX]: {
+        name: 'Six',
+        class: 'color-palette-six',
+        image: 'color-screenshots/6.png',
+    },
+    [Loophole_ColorPalette.SEVEN]: {
+        name: 'Seven',
+        class: 'color-palette-seven',
+        image: 'color-screenshots/7.png',
+    },
+};

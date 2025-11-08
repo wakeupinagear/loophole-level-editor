@@ -1,6 +1,8 @@
 ﻿// Max entity count is 4000
 // Max file size is 1 MB
 
+import type { Loophole_ColorPalette } from '../utils';
+
 // Must have an integer value.
 export type Loophole_Int = number;
 
@@ -241,11 +243,15 @@ export interface WithID {
 
 export type Loophole_EntityWithID = Loophole_Entity & WithID;
 
-export type Loophole_InternalLevel = Omit<Loophole_Level, 'entities' | 'explosions'> & {
+export type Loophole_InternalLevel = Omit<
+    Loophole_Level,
+    'entities' | 'explosions' | 'colorPalette'
+> & {
     entities: Loophole_EntityWithID[];
     entrance: Loophole_Level['entrance'] & WithID;
     explosions: (Loophole_Explosion & WithID)[];
     id: string;
+    colorPalette: Loophole_ColorPalette;
 };
 
 /* =============== Constraints =============== */

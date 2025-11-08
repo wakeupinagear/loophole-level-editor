@@ -437,7 +437,7 @@ class E_DragCursor extends Entity {
             }).bind(this),
             speed: 10,
         });
-        this.#positionLerp = new C_LerpPosition(this, 20);
+        this.#positionLerp = new C_LerpPosition(this, 30);
 
         this.addComponents(
             this.#handleShape,
