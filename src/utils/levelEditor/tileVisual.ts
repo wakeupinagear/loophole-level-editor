@@ -1,7 +1,6 @@
 import { C_Image } from '../engine/components/Image';
 import { C_Shape, type Shape } from '../engine/components/Shape';
 import { Entity } from '../engine/entities';
-import type { RenderStyle } from '../engine/systems/render';
 import {
     COLOR_PALETTE_METADATA,
     ENTITY_METADATA,
@@ -14,8 +13,7 @@ import type { Loophole_EntityWithID, Loophole_ExtendedEntityType } from './exter
 export class E_EntityVisual extends Entity {
     #tileImage: C_Image;
     #tileShapes: C_Shape[] = [];
-
-    #style: RenderStyle = {};
+    #opacity: number = 0;
 
     #type: Loophole_ExtendedEntityType | null = null;
 
@@ -31,21 +29,21 @@ export class E_EntityVisual extends Entity {
         );
     }
 
+    get opacity(): number {
+        return this.#opacity;
+    }
+
+    set opacity(opacity: number) {
+        this.#opacity = opacity;
+        this.#tileImage.style.globalAlpha = opacity;
+        this.#tileShapes.forEach((shape) => {
+            shape.style.globalAlpha = opacity;
+        });
+    }
+
     override destroy(): void {
         window.engine?.removeColorPaletteChangedListener(this.id.toString());
         super.destroy();
-    }
-
-    get style(): RenderStyle {
-        return this.#style;
-    }
-
-    set style(style: RenderStyle) {
-        this.#style = style;
-        this.#tileImage.style.globalAlpha = style.globalAlpha ?? 1;
-        this.#tileShapes.forEach((shape) => {
-            shape.style.globalAlpha = style.globalAlpha ?? 1;
-        });
     }
 
     onEntityChanged(type: Loophole_ExtendedEntityType, entity?: Loophole_EntityWithID) {

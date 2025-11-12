@@ -93,7 +93,6 @@ export abstract class C_Drawable extends Component {
     }
 
     set style(style: RenderStyle) {
-        console.log('setting style', style);
         this._style = { ...this._style, ...style };
     }
 

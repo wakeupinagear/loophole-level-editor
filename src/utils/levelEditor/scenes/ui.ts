@@ -21,12 +21,7 @@ import {
 import { PointerButton } from '@/utils/engine/systems/pointer';
 import type { Position } from '@/utils/engine/types';
 import type { LevelEditor } from '..';
-import {
-    C_Lerp,
-    C_LerpOpacity,
-    C_LerpPosition,
-    C_LerpRotation,
-} from '@/utils/engine/components/Lerp';
+import { C_Lerp, C_LerpPosition, C_LerpRotation } from '@/utils/engine/components/Lerp';
 import { positionsEqual } from '@/utils/engine/utils';
 import { C_Shape } from '@/utils/engine/components/Shape';
 import { E_Tile, E_TileHighlight } from './grid';
@@ -61,15 +56,23 @@ class E_TileCursor extends Entity {
 
     constructor(editor: LevelEditor) {
         super('cursor');
+
         this.#entityVisual = new E_EntityVisual();
+        this.#tileOpacityLerp = new C_Lerp({
+            get: () => this.#entityVisual.opacity,
+            set: (value: number) => {
+                this.#entityVisual.opacity = value;
+            },
+            speed: 4,
+        });
+        this.#entityVisual.addComponents(this.#tileOpacityLerp);
         this.addEntities(this.#entityVisual);
 
         this.#editor = editor;
         this.setZIndex(50);
-        this.#tileOpacityLerp = new C_LerpOpacity(this.#entityVisual, 4);
         this.#positionLerp = new C_LerpPosition(this, 20);
         this.#tileRotationLerp = new C_LerpRotation(this, 1000);
-        this.addComponents(this.#tileOpacityLerp, this.#positionLerp, this.#tileRotationLerp);
+        this.addComponents(this.#positionLerp, this.#tileRotationLerp);
     }
 
     override update(deltaTime: number): boolean {
