@@ -40,11 +40,11 @@ const ENTITY_TYPE_DRAW_ORDER_LIST: Loophole_EntityType[] = [
     'MUSHROOM',
     'STAFF',
     'WALL',
-    'ONE_WAY',
     'GLASS',
     'DOOR',
     'CURTAIN',
     'TIME_MACHINE',
+    'ONE_WAY',
     'SAUCE',
     'EXIT',
     'EXPLOSION',
@@ -585,50 +585,50 @@ export const COLOR_PALETTE_METADATA: Record<
         name: string;
         class: string;
         image: string;
-        wall: string;
+        wallImage: string;
     }
 > = {
     [Loophole_ColorPalette.ONE]: {
         name: 'One',
         class: 'color-palette-one',
         image: 'color-screenshots/1.png',
-        wall: 'orange',
+        wallImage: 'vector/wall-1.svg',
     },
     [Loophole_ColorPalette.TWO]: {
         name: 'Two',
         class: 'color-palette-two',
         image: 'color-screenshots/2.png',
-        wall: 'blue',
+        wallImage: 'vector/wall-2.svg',
     },
     [Loophole_ColorPalette.THREE]: {
         name: 'Three',
         class: 'color-palette-three',
         image: 'color-screenshots/3.png',
-        wall: 'purple',
+        wallImage: 'vector/wall-3.svg',
     },
     [Loophole_ColorPalette.FOUR]: {
         name: 'Four',
         class: 'color-palette-four',
         image: 'color-screenshots/4.png',
-        wall: 'pink',
+        wallImage: 'vector/wall-4.svg',
     },
     [Loophole_ColorPalette.FIVE]: {
         name: 'Five',
         class: 'color-palette-five',
         image: 'color-screenshots/5.png',
-        wall: 'pale-green',
+        wallImage: 'vector/wall-5.svg',
     },
     [Loophole_ColorPalette.SIX]: {
         name: 'Six',
         class: 'color-palette-six',
         image: 'color-screenshots/6.png',
-        wall: 'green',
+        wallImage: 'vector/wall-6.svg',
     },
     [Loophole_ColorPalette.SEVEN]: {
         name: 'Seven',
         class: 'color-palette-seven',
         image: 'color-screenshots/7.png',
-        wall: 'red',
+        wallImage: 'vector/wall-7.svg',
     },
 };
 

@@ -93,10 +93,11 @@ export abstract class C_Drawable extends Component {
     }
 
     set style(style: RenderStyle) {
+        console.log('setting style', style);
         this._style = { ...this._style, ...style };
     }
 
-    get origin(): Position {
+    get origin(): Readonly<Position> {
         return this._origin;
     }
 
@@ -105,7 +106,7 @@ export abstract class C_Drawable extends Component {
         return this;
     }
 
-    get scale(): Position {
+    get scale(): Readonly<Position> {
         return this._scale;
     }
 

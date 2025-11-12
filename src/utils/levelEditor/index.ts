@@ -74,10 +74,12 @@ export class LevelEditor extends Engine {
     #tiles: Record<string, E_Tile> = {};
     #stashedTiles: Record<string, E_Tile> = {};
     #levelID: string | null = null;
-    #lastColorPalette: Loophole_ColorPalette | null = null;
+    #colorPalette: Loophole_ColorPalette | null = null;
 
     #undoStack: EditActionGroup[] = [];
     #redoStack: EditActionGroup[] = [];
+    #colorPaletteChangedListeners: Map<string, (palette: Loophole_ColorPalette) => void> =
+        new Map();
 
     constructor(onLevelChanged?: OnLevelChangedCallback, options: Partial<EngineOptions> = {}) {
         super({
@@ -105,6 +107,12 @@ export class LevelEditor extends Engine {
                 ),
                 [GUY_SPRITE]: 'pixel/guy.png',
                 [WIRE_CORNER_SPRITE]: 'pixel/wire-corner.png',
+                ...Object.fromEntries(
+                    Object.values(Loophole_ColorPalette).map((palette) => [
+                        `wall-${palette}`,
+                        COLOR_PALETTE_METADATA[palette].wallImage,
+                    ]),
+                ),
                 ...options.images,
             },
         });
@@ -169,8 +177,23 @@ export class LevelEditor extends Engine {
         return Object.keys(this.#tiles).length;
     }
 
+    get colorPalette(): Loophole_ColorPalette | null {
+        return this.#colorPalette;
+    }
+
+    addColorPaletteChangedListener(id: string, listener: (palette: Loophole_ColorPalette) => void) {
+        this.#colorPaletteChangedListeners.set(id, listener);
+        if (this.#colorPalette) {
+            listener(this.#colorPalette);
+        }
+    }
+
+    removeColorPaletteChangedListener(id: string) {
+        this.#colorPaletteChangedListeners.delete(id);
+    }
+
     override _update(): boolean {
-        const { cameraTarget, setCameraTarget } = getAppStore();
+        const { cameraTarget, setCameraTarget, levels, activeLevelID } = getAppStore();
         if (cameraTarget) {
             this.cameraTarget = cameraTarget;
             setCameraTarget(null);
@@ -183,16 +206,12 @@ export class LevelEditor extends Engine {
             this.zoomCamera(0.4 / this.options.zoomSpeed);
         }
 
-        const colorPalette = this.#level?.colorPalette;
-        if (colorPalette !== undefined && colorPalette !== this.#lastColorPalette) {
-            Object.values(this.#tiles).forEach((tile) => {
-                if (tile.type === 'WALL') {
-                    console.log(COLOR_PALETTE_METADATA[colorPalette].wall);
-                    tile.tileImage.style.fillStyle = COLOR_PALETTE_METADATA[colorPalette].wall;
-                }
-            });
+        const level = levels[activeLevelID];
+        const colorPalette = level?.colorPalette;
+        if (colorPalette !== undefined && colorPalette !== this.#colorPalette) {
+            this.#colorPaletteChangedListeners.forEach((listener) => listener(colorPalette));
             this.forceRender();
-            this.#lastColorPalette = colorPalette;
+            this.#colorPalette = colorPalette;
         }
 
         return false;

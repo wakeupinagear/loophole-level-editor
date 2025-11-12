@@ -2,7 +2,13 @@ import { C_Image } from '../engine/components/Image';
 import { C_Shape, type Shape } from '../engine/components/Shape';
 import { Entity } from '../engine/entities';
 import type { RenderStyle } from '../engine/systems/render';
-import { ENTITY_METADATA, getLoopholeWireSprite, WIRE_CORNER_SPRITE } from '../utils';
+import {
+    COLOR_PALETTE_METADATA,
+    ENTITY_METADATA,
+    getLoopholeWireSprite,
+    Loophole_ColorPalette,
+    WIRE_CORNER_SPRITE,
+} from '../utils';
 import type { Loophole_EntityWithID, Loophole_ExtendedEntityType } from './externalLevelSchema';
 
 export class E_EntityVisual extends Entity {
@@ -19,6 +25,15 @@ export class E_EntityVisual extends Entity {
             imageSmoothingEnabled: false,
         });
         this.addComponents(this.#tileImage);
+
+        window.engine?.addColorPaletteChangedListener(this.id.toString(), (palette) =>
+            this.onColorPaletteChanged(palette),
+        );
+    }
+
+    override destroy(): void {
+        window.engine?.removeColorPaletteChangedListener(this.id.toString());
+        super.destroy();
     }
 
     get style(): RenderStyle {
@@ -26,7 +41,6 @@ export class E_EntityVisual extends Entity {
     }
 
     set style(style: RenderStyle) {
-        console.log('setting style', style);
         this.#style = style;
         this.#tileImage.style.globalAlpha = style.globalAlpha ?? 1;
         this.#tileShapes.forEach((shape) => {
@@ -58,10 +72,22 @@ export class E_EntityVisual extends Entity {
                             wireSprite === 'CORNER' ? WIRE_CORNER_SPRITE : name;
                         break;
                     }
+                    case 'WALL': {
+                        if (window.engine?.colorPalette) {
+                            this.onColorPaletteChanged(window.engine.colorPalette);
+                        }
+                        break;
+                    }
                     default:
                         this.#tileImage.imageName = name;
                         break;
                 }
+        }
+    }
+
+    onColorPaletteChanged(palette: Loophole_ColorPalette) {
+        if (this.#type === 'WALL') {
+            this.#tileImage.imageName = COLOR_PALETTE_METADATA[palette].wallImage;
         }
     }
 

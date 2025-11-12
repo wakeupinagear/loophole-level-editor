@@ -1,8 +1,8 @@
 import clsx from 'clsx';
 import { cn } from '../../lib/utils';
 import type { Loophole_ExtendedEntityType } from '../../utils/levelEditor/externalLevelSchema';
-import { useAppStore } from '../../utils/stores';
-import { ENTITY_METADATA } from '../../utils/utils';
+import { useAppStore, useCurrentLevel } from '../../utils/stores';
+import { COLOR_PALETTE_METADATA, ENTITY_METADATA } from '../../utils/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { Panel } from '../Panel';
 
@@ -13,6 +13,8 @@ interface TilePickerProps {
 export default function TilePicker({ className }: TilePickerProps) {
     const brushEntityType = useAppStore((state) => state.brushEntityType);
     const setBrushEntityType = useAppStore((state) => state.setBrushEntityType);
+    const currentLevel = useCurrentLevel();
+    const colorPalette = currentLevel?.colorPalette ?? null;
 
     return (
         <Panel className={clsx('flex h-min w-fit', className)}>
@@ -43,7 +45,11 @@ export default function TilePicker({ className }: TilePickerProps) {
                                         }}
                                     >
                                         <img
-                                            src={metadata.src}
+                                            src={
+                                                entityType === 'WALL' && colorPalette !== null
+                                                    ? COLOR_PALETTE_METADATA[colorPalette].wallImage
+                                                    : metadata.src
+                                            }
                                             alt={metadata.name}
                                             width={64}
                                             height={64}
