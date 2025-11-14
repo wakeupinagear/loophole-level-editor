@@ -18,7 +18,7 @@ export default function TilePicker({ className }: TilePickerProps) {
 
     return (
         <Panel className={clsx('flex h-min w-fit', className)}>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3">
                 {Object.entries(ENTITY_METADATA).map(
                     ([entityType, metadata]) =>
                         !metadata.hideInPicker && (

@@ -35,6 +35,7 @@ export type LoopholePositionType = 'CELL' | 'EDGE';
 
 const ENTITY_TYPE_DRAW_ORDER_LIST: Loophole_EntityType[] = [
     'WIRE',
+    'EXIT',
     'CLEANSING_POOL',
     'BUTTON',
     'MUSHROOM',
@@ -46,7 +47,6 @@ const ENTITY_TYPE_DRAW_ORDER_LIST: Loophole_EntityType[] = [
     'TIME_MACHINE',
     'ONE_WAY',
     'SAUCE',
-    'EXIT',
     'EXPLOSION',
 ] as const;
 export const ENTITY_TYPE_DRAW_ORDER: Record<Loophole_EntityType, number> =
@@ -417,7 +417,7 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
     EXPLOSION: {
         name: 'Explosion',
         description: 'An explosion that damages the player.',
-        src: 'pixel/explosion.png',
+        src: 'vector/explosion.svg',
         type: 'EXPLOSION',
         extendedType: 'EXPLOSION',
         positionType: 'CELL',

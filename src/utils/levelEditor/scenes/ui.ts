@@ -2,8 +2,11 @@ import {
     calculateSelectionCenter,
     degreesToLoopholeRotation,
     ENTITY_METADATA,
+    getLoopholeEntityEdgeAlignment,
+    getLoopholeEntityPosition,
     getLoopholeExplosionPosition,
     getLoopholeExplosionStartPosition,
+    loopholePositionToEnginePosition,
     loopholeRotationToDegrees,
     TILE_SIZE,
 } from '@/utils/utils';
@@ -27,7 +30,7 @@ import { C_Shape } from '@/utils/engine/components/Shape';
 import { E_Tile, E_TileHighlight } from './grid';
 import { C_PointerTarget } from '@/utils/engine/components/PointerTarget';
 import { v4 } from 'uuid';
-import { E_EntityVisual } from '../tileVisual';
+import { E_EntityVisual } from '../entityVisual';
 
 const HANDLE_COLOR = 'yellow';
 const HANDLE_HOVER_COLOR = 'red';
@@ -57,7 +60,7 @@ class E_TileCursor extends Entity {
     constructor(editor: LevelEditor) {
         super('cursor');
 
-        this.#entityVisual = new E_EntityVisual();
+        this.#entityVisual = new E_EntityVisual('brush');
         this.#tileOpacityLerp = new C_Lerp({
             get: () => this.#entityVisual.opacity,
             set: (value: number) => {
@@ -510,7 +513,7 @@ class E_DragCursor extends Entity {
 
             if (!this.#isDragging && selectedTileArray.length > 0) {
                 if (this.#editor.getKey('r').pressed) {
-                    const center = calculateSelectionCenter(selectedTileArray);
+                    const center = this.#calculateSelectionCenterInt(selectedTileArray);
                     const entities = selectedTileArray.map((t) => t.entity);
                     const newTiles = this.#editor.rotateEntities(
                         entities,
@@ -546,6 +549,40 @@ class E_DragCursor extends Entity {
         }
 
         return updated;
+    }
+
+    #calculateSelectionCenter(tiles: E_Tile[]): Position {
+        if (tiles.length === 0) {
+            return { x: 0, y: 0 };
+        }
+
+        let minX = Number.POSITIVE_INFINITY;
+        let minY = Number.POSITIVE_INFINITY;
+        let maxX = Number.NEGATIVE_INFINITY;
+        let maxY = Number.NEGATIVE_INFINITY;
+
+        tiles.forEach((tile) => {
+            const pos = getLoopholeEntityPosition(tile.entity);
+            const edgeAlign = getLoopholeEntityEdgeAlignment(tile.entity);
+            const enginePos = loopholePositionToEnginePosition(pos, edgeAlign);
+            if (enginePos.x < minX) minX = enginePos.x;
+            if (enginePos.y < minY) minY = enginePos.y;
+            if (enginePos.x > maxX) maxX = enginePos.x;
+            if (enginePos.y > maxY) maxY = enginePos.y;
+        });
+
+        return {
+            x: (minX + maxX) / 2,
+            y: (minY + maxY) / 2,
+        };
+    }
+
+    #calculateSelectionCenterInt(tiles: E_Tile[]): Loophole_Int2 {
+        const center = this.#calculateSelectionCenter(tiles);
+        return {
+            x: Math.round(center.x),
+            y: Math.round(center.y),
+        };
     }
 
     #updateTilePositions(tiles: E_Tile[]) {

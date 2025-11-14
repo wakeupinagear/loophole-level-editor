@@ -499,6 +499,7 @@ export class LevelEditor extends Engine {
         rotation: 90 | -90,
         hash?: string | null,
     ): E_Tile[] {
+        console.log('rotate', centerPosition);
         const group: EditActionGroup = {
             actions: [],
             hash: hash || v4(),
@@ -546,8 +547,8 @@ export class LevelEditor extends Engine {
                     const currentDegrees = loopholeRotationToDegrees(entity.direction);
                     const newDegrees = (currentDegrees + rotation + 360) % 360;
                     const cellPos: Position = {
-                        x: Math.round(centerPosition.x / TILE_SIZE),
-                        y: Math.round(centerPosition.y / TILE_SIZE),
+                        x: Math.round(centerPosition.x),
+                        y: Math.round(centerPosition.y),
                     };
                     newEntity = {
                         ...entity,

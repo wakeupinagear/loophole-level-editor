@@ -13,6 +13,7 @@ import {
     getLoopholeEntityFlipDirection,
     getLoopholeWireSprite,
     loopholeRotationToDegrees,
+    TILE_SIZE,
 } from '@/utils/utils';
 import { RotateCcw, RotateCw, Trash } from 'lucide-react';
 import { Badge } from '../ui/badge';
@@ -89,7 +90,10 @@ function MultiTileContent({ selectedTiles }: MultiTileContentProps) {
         const center = calculateSelectionCenter(selectedTiles);
         const entities = window.engine?.rotateEntities(
             selectedTiles.map((t) => t.entity),
-            center,
+            {
+                x: center.x / TILE_SIZE,
+                y: center.y / TILE_SIZE,
+            },
             rotation,
         );
         if (entities) {

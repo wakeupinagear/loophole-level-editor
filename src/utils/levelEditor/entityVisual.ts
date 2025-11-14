@@ -10,19 +10,24 @@ import {
 } from '../utils';
 import type { Loophole_EntityWithID, Loophole_ExtendedEntityType } from './externalLevelSchema';
 
+type Mode = 'brush' | 'tile';
+
 export class E_EntityVisual extends Entity {
     #tileImage: C_Image;
     #tileShapes: C_Shape[] = [];
     #opacity: number = 0;
 
     #type: Loophole_ExtendedEntityType | null = null;
+    #mode: Mode;
 
-    constructor() {
+    constructor(mode: Mode) {
         super('entity_visual');
         this.#tileImage = new C_Image('entity_visual', '', {
             imageSmoothingEnabled: false,
         });
         this.addComponents(this.#tileImage);
+
+        this.#mode = mode;
 
         window.engine?.addColorPaletteChangedListener(this.id.toString(), (palette) =>
             this.onColorPaletteChanged(palette),
@@ -56,30 +61,29 @@ export class E_EntityVisual extends Entity {
         this.#tileImage.imageName = '';
 
         const { name } = ENTITY_METADATA[type];
-        switch (type) {
-            case 'EXPLOSION': {
-                this.#requestTileShapes('RECT');
-                this.#tileShapes[0].style.fillStyle = 'orange';
-                break;
-            }
-            default:
-                switch (type) {
-                    case 'WIRE': {
-                        const wireSprite = entity && getLoopholeWireSprite(entity);
-                        this.#tileImage.imageName =
-                            wireSprite === 'CORNER' ? WIRE_CORNER_SPRITE : name;
-                        break;
-                    }
-                    case 'WALL': {
-                        if (window.engine?.colorPalette) {
-                            this.onColorPaletteChanged(window.engine.colorPalette);
-                        }
-                        break;
-                    }
-                    default:
-                        this.#tileImage.imageName = name;
-                        break;
+        if (this.#mode === 'tile' && type === 'EXPLOSION') {
+            this.#requestTileShapes('RECT');
+            this.#tileShapes[0].style.fillStyle = 'orange';
+        } else {
+            switch (type) {
+                case 'WIRE': {
+                    const wireSprite = entity && getLoopholeWireSprite(entity);
+                    this.#tileImage.imageName = wireSprite === 'CORNER' ? WIRE_CORNER_SPRITE : name;
+                    break;
                 }
+                case 'WALL': {
+                    if (
+                        window.engine?.colorPalette !== null &&
+                        window.engine?.colorPalette !== undefined
+                    ) {
+                        this.onColorPaletteChanged(window.engine.colorPalette);
+                    }
+                    break;
+                }
+                default:
+                    this.#tileImage.imageName = name;
+                    break;
+            }
         }
     }
 

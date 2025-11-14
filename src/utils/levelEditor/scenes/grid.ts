@@ -23,7 +23,7 @@ import {
 import { C_Lerp, C_LerpOpacity, C_LerpPosition } from '@/utils/engine/components/Lerp';
 import type { Position } from '@/utils/engine/types';
 import { E_InfiniteShape } from './InfiniteShape';
-import { E_EntityVisual } from '../tileVisual';
+import { E_EntityVisual } from '../entityVisual';
 
 const ACTIVE_TILE_OPACITY = 0.3;
 
@@ -78,7 +78,7 @@ export class E_Tile extends Entity {
         this.addComponents(this.#tileImage, this.#positionLerp);
 
         this.#highlightEntity = new E_TileHighlight(this);
-        this.#entityVisual = new E_EntityVisual().setZIndex(-1);
+        this.#entityVisual = new E_EntityVisual('tile').setZIndex(-1);
         this.#pointerParent = new Entity('pointer_parent');
         this.#highlightEntity.addEntities(this.#entityVisual, this.#pointerParent);
 
@@ -125,7 +125,7 @@ export class E_Tile extends Entity {
         this.#variant = variant;
         if (variant === 'entrance') {
             if (!this.#guyImage) {
-                this.#guyImage = new C_Image('guy', GUY_SPRITE);
+                this.#guyImage = new C_Image('guy', GUY_SPRITE).setZIndex(10);
                 this.addComponents(this.#guyImage);
             }
         } else {
@@ -212,7 +212,7 @@ export class E_Tile extends Entity {
         const positionType = getLoopholeEntityPositionType(this.#entity);
         const enginePosition = loopholePositionToEnginePosition(loopholePosition, edgeAlignment);
         this.#type = getLoopholeEntityExtendedType(this.#entity);
-        const { tileScale: tileScaleOverride = 1, highlightScale = 1.1 } =
+        const { tileScale: tileScaleOverride = 1, highlightScale = 1 } =
             ENTITY_METADATA[this.#type];
 
         this.setScale(tileScaleOverride * TILE_SIZE);
@@ -239,6 +239,7 @@ export class E_Tile extends Entity {
 
         this.#updatePosition();
 
+        this.#highlightEntity.setEnabled(true);
         this.#entityVisual.onEntityChanged(this.#type, this.#entity);
     }
 
