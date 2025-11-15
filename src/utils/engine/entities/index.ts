@@ -344,6 +344,10 @@ export class Entity implements Renderable {
     }
 
     #getComponentsInTree<T extends Component>(typeString: string): RecursiveArray<T> {
+        if (!this.enabled) {
+            return [];
+        }
+
         return [
             ...this._children.map((c) => c.getComponentsInTree<T>(typeString)),
             ...this._components.filter((c) => {

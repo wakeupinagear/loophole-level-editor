@@ -308,7 +308,7 @@ export class LevelEditor extends Engine {
         }
 
         const { createEntity, positionType } = ENTITY_METADATA[entityType];
-        if (this.#isOverlappingCriticalTile(entityType, position, positionType)) {
+        if (this.#overlapsCriticalTile(entityType, position, positionType, edgeAlignment)) {
             return [];
         }
 
@@ -328,6 +328,7 @@ export class LevelEditor extends Engine {
 
     removeEntities(entities: Loophole_EntityWithID[], hash?: string | null): E_Tile[] {
         const tiles = entities.map((entity) => ({
+            tID: entity.tID,
             position: getLoopholeEntityPosition(entity),
             positionType: getLoopholeEntityPositionType(entity),
             entityType: entity.entityType,
@@ -339,6 +340,7 @@ export class LevelEditor extends Engine {
 
     removeTiles(
         tiles: {
+            tID?: string;
             position: Loophole_Int2;
             positionType: LoopholePositionType;
             entityType: Loophole_EntityType;
@@ -350,6 +352,7 @@ export class LevelEditor extends Engine {
         tiles.forEach((tile) => {
             overlappingEntities.push(
                 ...this.#getOverlappingEntities(
+                    tile.tID ?? '',
                     tile.position,
                     tile.positionType,
                     tile.entityType,
@@ -427,10 +430,12 @@ export class LevelEditor extends Engine {
 
             const position = getLoopholeEntityPosition(entity);
             const positionType = getLoopholeEntityPositionType(entity);
-            const isCritical = this.#isOverlappingCriticalTile(
+            const edgeAlignment = getLoopholeEntityEdgeAlignment(entity);
+            const isCritical = this.#overlapsCriticalTile(
                 entity.entityType,
                 position,
                 positionType,
+                edgeAlignment,
             );
 
             const newEntity = { ...entity };
@@ -457,10 +462,11 @@ export class LevelEditor extends Engine {
 
             if (
                 isCritical ||
-                !this.#isOverlappingCriticalTile(
+                !this.#overlapsCriticalTile(
                     entity.entityType,
                     newPosition,
                     getLoopholeEntityPositionType(newEntity),
+                    edgeAlignment,
                 )
             ) {
                 group.actions.push({ type: 'place', entity: newEntity });
@@ -510,10 +516,12 @@ export class LevelEditor extends Engine {
             let newEntity = entity;
             const positionType = getLoopholeEntityPositionType(entity);
             const position = getLoopholeEntityPosition(entity);
-            const isCritical = this.#isOverlappingCriticalTile(
+            const edgeAlignment = getLoopholeEntityEdgeAlignment(entity);
+            const isCritical = this.#overlapsCriticalTile(
                 entity.entityType,
                 position,
                 positionType,
+                edgeAlignment,
             );
 
             if (positionType === 'CELL') {
@@ -592,10 +600,11 @@ export class LevelEditor extends Engine {
             const newPosition = getLoopholeEntityPosition(newEntity);
             if (
                 isCritical ||
-                !this.#isOverlappingCriticalTile(
+                !this.#overlapsCriticalTile(
                     newEntity.entityType,
                     newPosition,
                     getLoopholeEntityPositionType(newEntity),
+                    edgeAlignment,
                 )
             ) {
                 group.actions.push({ type: 'place', entity: newEntity });
@@ -638,6 +647,7 @@ export class LevelEditor extends Engine {
 
         for (const entity of placedEntities.values()) {
             const overlappingEntities = this.#getOverlappingEntities(
+                entity.tID,
                 getLoopholeEntityPosition(entity),
                 getLoopholeEntityPositionType(entity),
                 entity.entityType,
@@ -752,6 +762,7 @@ export class LevelEditor extends Engine {
     }
 
     #getOverlappingEntities(
+        tID: string,
         position: Loophole_Int2,
         positionType: LoopholePositionType,
         entityType: Loophole_EntityType,
@@ -763,6 +774,7 @@ export class LevelEditor extends Engine {
 
         const { tileOwnership: newTileOwnership } =
             ENTITY_METADATA[convertLoopholeTypeToExtendedType(entityType)];
+        const isEntrance = tID === this.#level?.entrance.tID;
 
         return [...this.#level.entities, ...this.#level.explosions].filter((entity) => {
             const {
@@ -770,7 +782,8 @@ export class LevelEditor extends Engine {
                 positionType: entityPositionType,
                 type,
             } = ENTITY_METADATA[getLoopholeEntityExtendedType(entity)];
-            if (entityPositionType !== positionType) {
+            const otherIsEntrance = entity.tID === this.#level?.entrance.tID;
+            if (!isEntrance && !otherIsEntrance && entityPositionType !== positionType) {
                 return false;
             }
 
@@ -783,6 +796,10 @@ export class LevelEditor extends Engine {
             }
 
             const entityPos = getLoopholeEntityPosition(entity);
+            const alignment = getLoopholeEntityEdgeAlignment(entity);
+            if (isEntrance && this.#overlapsEntrance(entityPos, alignment)) {
+                return true;
+            }
             if (entityPos.x !== position.x || entityPos.y !== position.y) {
                 return false;
             }
@@ -797,7 +814,7 @@ export class LevelEditor extends Engine {
                 return false;
             }
 
-            if ('edgePosition' in entity && entity.edgePosition.alignment !== edgeAlignment) {
+            if (alignment && alignment !== edgeAlignment) {
                 return false;
             }
 
@@ -805,23 +822,54 @@ export class LevelEditor extends Engine {
         });
     }
 
-    #isOverlappingCriticalTile(
+    #overlapsCriticalTile(
         entityType: Loophole_EntityType | Loophole_ExtendedEntityType,
         position: Loophole_Int2,
         positionType: LoopholePositionType,
+        alignment: Loophole_EdgeAlignment | null,
     ): boolean {
-        if (entityType === 'EXPLOSION' || positionType !== 'CELL') {
+        if (entityType === 'EXPLOSION') {
             return false;
         }
 
         if (
             this.#level &&
-            (positionsEqual(position, getLoopholeEntityPosition(this.#level?.entrance)) ||
-                positionsEqual(position, this.#level.exitPosition))
+            positionType === 'CELL' &&
+            positionsEqual(position, this.#level.exitPosition)
         ) {
             return true;
         }
 
+        if (this.#overlapsEntrance(position, alignment)) {
+            return true;
+        }
+
         return false;
+    }
+
+    #overlapsEntrance(position: Position, alignment: Loophole_EdgeAlignment | null) {
+        if (!this.#level) return false;
+
+        const entrancePosition = getLoopholeEntityPosition(this.#level.entrance);
+
+        return (
+            positionsEqual(position, entrancePosition) ||
+            (alignment === 'RIGHT' &&
+                positionsEqual(
+                    {
+                        x: position.x + 1,
+                        y: position.y,
+                    },
+                    entrancePosition,
+                )) ||
+            (alignment === 'TOP' &&
+                positionsEqual(
+                    {
+                        x: position.x,
+                        y: position.y + 1,
+                    },
+                    entrancePosition,
+                ))
+        );
     }
 }

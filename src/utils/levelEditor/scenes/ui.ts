@@ -284,7 +284,7 @@ class E_TileCursor extends Entity {
 
         // Place tiles that haven't been placed yet
         const allPlacedTiles: E_Tile[] = [];
-        const edgeAlignment = this.#dragEdgeAlignment ?? 'RIGHT';
+        const edgeAlignment = this.#dragEdgeAlignment ?? null;
 
         for (const pos of tilesToPlace) {
             const key = this.#getTileKey(pos, edgeAlignment);
