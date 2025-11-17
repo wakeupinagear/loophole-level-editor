@@ -44,9 +44,9 @@ const ENTITY_TYPE_DRAW_ORDER_LIST: Loophole_EntityType[] = [
     'GLASS',
     'DOOR',
     'CURTAIN',
-    'TIME_MACHINE',
     'ONE_WAY',
     'SAUCE',
+    'TIME_MACHINE',
     'EXPLOSION',
 ] as const;
 export const ENTITY_TYPE_DRAW_ORDER: Record<Loophole_EntityType, number> =
@@ -192,6 +192,7 @@ export const ENTITY_METADATA: Record<Loophole_ExtendedEntityType, EntityMetadata
         tileOwnership: 'ONLY_ENTITY_IN_TILE',
         hasRotation: true,
         dragPlacementDisabled: true,
+        highlightScale: 1.3,
     },
     WALL: {
         name: 'Wall',

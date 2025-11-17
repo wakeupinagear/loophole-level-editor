@@ -127,7 +127,7 @@ export class Entity implements Renderable {
     }
 
     destroy(): void {
-        this._parent?.removeChild(this);
+        this._parent?.removeChildren(this);
         this.#destroy();
     }
 
@@ -141,9 +141,8 @@ export class Entity implements Renderable {
         return this;
     }
 
-    removeChild(entity: Entity): void {
-        this._children = [...this._children.filter((e) => e !== entity)];
-        entity.parent = null;
+    removeChildren(...entities: Entity[]): void {
+        this._children = [...this._children.filter((e) => entities.every((ic) => e.id !== ic.id))];
     }
 
     setEnabled(enabled: boolean): this {
@@ -195,7 +194,6 @@ export class Entity implements Renderable {
     setZIndex(zIndex: number): this {
         if (this._zIndex !== zIndex) {
             this._zIndex = zIndex;
-            if (zIndex === 0) console.trace('setZIndex', this.name, zIndex);
             if (this._parent) {
                 this._parent.childrenZIndexDirty = true;
             }
@@ -215,7 +213,7 @@ export class Entity implements Renderable {
 
     setParent(parent: Entity | Scene | null): this {
         if (this._parent) {
-            this._parent.removeChild(this);
+            this._parent.removeChildren(this);
         }
 
         if (parent) {
@@ -237,8 +235,9 @@ export class Entity implements Renderable {
         return this;
     }
 
-    removeComponent(component: Component): void {
-        this._components = this._components.filter((c) => c !== component);
+    removeComponents(...components: Component[]): this {
+        this._components = this._components.filter((c) => components.every((ic) => c.id !== ic.id));
+        return this;
     }
 
     hasComponent(component: Component): boolean {

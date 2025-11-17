@@ -41,8 +41,8 @@ export class C_Image extends C_Drawable {
         }
 
         const data: DrawDataImage = {
-            x: -0.5 * this.scale.x,
-            y: -0.5 * this.scale.y,
+            x: -this.origin.x * this.scale.x,
+            y: -this.origin.y * this.scale.y,
             w: this.scale.x,
             h: this.scale.y,
             img: this.#imageName,

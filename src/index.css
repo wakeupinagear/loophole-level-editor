@@ -11,6 +11,7 @@ body {
 }
 
 #engine-canvas {
+    @apply transition-colors;
     background-color: var(--muted-foreground);
 }
 

@@ -16,7 +16,6 @@ import {
     getLoopholeEntityExtendedType,
     getLoopholeEntityPosition,
     getLoopholeEntityPositionType,
-    GUY_SPRITE,
     loopholePositionToEnginePosition,
     TILE_SIZE,
 } from '@/utils/utils';
@@ -24,6 +23,7 @@ import { C_Lerp, C_LerpOpacity, C_LerpPosition } from '@/utils/engine/components
 import type { Position } from '@/utils/engine/types';
 import { E_InfiniteShape } from './InfiniteShape';
 import { E_EntityVisual } from '../entityVisual';
+import { C_Line } from '@/utils/engine/components/Line';
 
 const ACTIVE_TILE_OPACITY = 0.3;
 
@@ -41,6 +41,11 @@ export class E_TileHighlight extends Entity {
     get tile(): E_Tile {
         return this.#tile;
     }
+}
+
+interface TimeMachineDecals {
+    arrow: C_Line;
+    walls: Entity[];
 }
 
 export class E_Tile extends Entity {
@@ -63,7 +68,7 @@ export class E_Tile extends Entity {
     #highlightShape: C_Shape;
     #opacityLerp: C_Lerp<number>;
 
-    #guyImage: C_Image | null = null;
+    #timeMachineDecals: TimeMachineDecals | null = null;
 
     constructor(editor: LevelEditor, entity: Loophole_EntityWithID) {
         super('tile');
@@ -71,13 +76,13 @@ export class E_Tile extends Entity {
         this.#editor = editor;
         this.#entity = entity;
         this.#type = getLoopholeEntityExtendedType(entity);
-        this.#tileImage = new C_Image('tile', '', {
+        this.#tileImage = new C_Image('tile-image', '', {
             imageSmoothingEnabled: false,
         }).setZIndex(10);
         this.#positionLerp = new C_LerpPosition(this, 20);
         this.addComponents(this.#tileImage, this.#positionLerp);
 
-        this.#highlightEntity = new E_TileHighlight(this);
+        this.#highlightEntity = new E_TileHighlight(this).setZIndex(-1);
         this.#entityVisual = new E_EntityVisual('tile').setZIndex(-1);
         this.#pointerParent = new Entity('pointer_parent');
         this.#highlightEntity.addEntities(this.#entityVisual, this.#pointerParent);
@@ -123,17 +128,6 @@ export class E_Tile extends Entity {
 
     set variant(variant: TileVariant) {
         this.#variant = variant;
-        if (variant === 'entrance') {
-            if (!this.#guyImage) {
-                this.#guyImage = new C_Image('guy', GUY_SPRITE).setZIndex(10);
-                this.addComponents(this.#guyImage);
-            }
-        } else {
-            if (this.#guyImage) {
-                this.removeComponent(this.#guyImage);
-                this.#guyImage = null;
-            }
-        }
     }
 
     get initialized(): boolean {
@@ -204,6 +198,12 @@ export class E_Tile extends Entity {
         this.initialized = false;
         this.setEnabled(false);
         this.#highlightEntity.setEnabled(false); // TODO: make disabling propagate to children
+
+        if (this.#timeMachineDecals) {
+            this.removeComponents(this.#timeMachineDecals.arrow);
+            this.removeChildren(...this.#timeMachineDecals.walls);
+            this.#timeMachineDecals = null;
+        }
     }
 
     #onEntityChanged() {
@@ -241,6 +241,44 @@ export class E_Tile extends Entity {
 
         this.#highlightEntity.setEnabled(true);
         this.#entityVisual.onEntityChanged(this.#type, this.#entity);
+
+        if (this.#type === 'TIME_MACHINE') {
+            const arrow = new C_Line(
+                'arrow',
+                { x: -0.3, y: 0 },
+                { x: 0.3, y: 0 },
+                { strokeStyle: 'white', lineWidth: 0.1 },
+            )
+                .setEndTip({
+                    type: 'arrow',
+                    length: 0.25,
+                })
+                .setZIndex(1);
+            const walls = [
+                new E_EntityVisual('tile')
+                    .setEntityType('ONE_WAY')
+                    .setPosition({ x: -0.5, y: 0 })
+                    .setZIndex(1),
+                new E_EntityVisual('tile')
+                    .setEntityType('ONE_WAY')
+                    .setPosition({ x: 0.5, y: 0 })
+                    .setZIndex(1),
+                new E_EntityVisual('tile')
+                    .setEntityType('WALL')
+                    .setPosition({ x: 0, y: 0.5 })
+                    .setRotation(90)
+                    .setZIndex(1),
+                new E_EntityVisual('tile')
+                    .setEntityType('WALL')
+                    .setPosition({ x: 0, y: -0.5 })
+                    .setRotation(90)
+                    .setZIndex(1),
+            ];
+            console.log(arrow);
+            this.addComponents(arrow);
+            this.addEntities(...walls);
+            this.#timeMachineDecals = { arrow, walls };
+        }
     }
 
     #updatePosition() {

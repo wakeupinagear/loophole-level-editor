@@ -46,6 +46,11 @@ export class E_EntityVisual extends Entity {
         });
     }
 
+    setEntityType(type: Loophole_ExtendedEntityType, entity?: Loophole_EntityWithID): this {
+        this.onEntityChanged(type, entity);
+        return this;
+    }
+
     override destroy(): void {
         window.engine?.removeColorPaletteChangedListener(this.id.toString());
         super.destroy();
