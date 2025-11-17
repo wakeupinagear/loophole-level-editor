@@ -88,7 +88,7 @@ export class LevelEditor extends Engine {
             minZoom: -3,
             maxZoom: 0.5,
             cameraDrag: true,
-            clearColor: '#1e2124',
+            clearColor: 'transparent',
             keysToCapture: [
                 { key: 'z', ctrl: true },
                 { key: 'z', meta: true },
@@ -352,7 +352,6 @@ export class LevelEditor extends Engine {
         tiles.forEach((tile) => {
             overlappingEntities.push(
                 ...this.#getOverlappingEntities(
-                    tile.tID ?? '',
                     tile.position,
                     tile.positionType,
                     tile.entityType,
@@ -647,7 +646,6 @@ export class LevelEditor extends Engine {
 
         for (const entity of placedEntities.values()) {
             const overlappingEntities = this.#getOverlappingEntities(
-                entity.tID,
                 getLoopholeEntityPosition(entity),
                 getLoopholeEntityPositionType(entity),
                 entity.entityType,
@@ -762,7 +760,6 @@ export class LevelEditor extends Engine {
     }
 
     #getOverlappingEntities(
-        tID: string,
         position: Loophole_Int2,
         positionType: LoopholePositionType,
         entityType: Loophole_EntityType,
@@ -774,7 +771,7 @@ export class LevelEditor extends Engine {
 
         const { tileOwnership: newTileOwnership } =
             ENTITY_METADATA[convertLoopholeTypeToExtendedType(entityType)];
-        const isEntrance = tID === this.#level?.entrance.tID;
+        const isTimeMachine = entityType === 'TIME_MACHINE';
 
         return [...this.#level.entities, ...this.#level.explosions].filter((entity) => {
             const {
@@ -782,8 +779,8 @@ export class LevelEditor extends Engine {
                 positionType: entityPositionType,
                 type,
             } = ENTITY_METADATA[getLoopholeEntityExtendedType(entity)];
-            const otherIsEntrance = entity.tID === this.#level?.entrance.tID;
-            if (!isEntrance && !otherIsEntrance && entityPositionType !== positionType) {
+            const otherIsTimeMachine = entity.entityType === 'TIME_MACHINE';
+            if (!isTimeMachine && !otherIsTimeMachine && entityPositionType !== positionType) {
                 return false;
             }
 
@@ -797,7 +794,7 @@ export class LevelEditor extends Engine {
 
             const entityPos = getLoopholeEntityPosition(entity);
             const alignment = getLoopholeEntityEdgeAlignment(entity);
-            if (isEntrance && this.#overlapsEntrance(entityPos, alignment)) {
+            if (isTimeMachine && this.#overlapsTimeMachine(entityPos, alignment, position)) {
                 return true;
             }
             if (entityPos.x !== position.x || entityPos.y !== position.y) {
@@ -832,35 +829,37 @@ export class LevelEditor extends Engine {
             return false;
         }
 
-        if (
-            this.#level &&
-            positionType === 'CELL' &&
-            positionsEqual(position, this.#level.exitPosition)
-        ) {
-            return true;
-        }
+        if (this.#level) {
+            if (positionType === 'CELL' && positionsEqual(position, this.#level.exitPosition)) {
+                return true;
+            }
 
-        if (this.#overlapsEntrance(position, alignment)) {
-            return true;
+            for (const e of [this.#level.entrance, ...this.#level.entities].filter(
+                (e) => e.entityType === 'TIME_MACHINE',
+            )) {
+                if (this.#overlapsTimeMachine(position, alignment, e.position)) {
+                    return true;
+                }
+            }
         }
 
         return false;
     }
 
-    #overlapsEntrance(position: Position, alignment: Loophole_EdgeAlignment | null) {
-        if (!this.#level) return false;
-
-        const entrancePosition = getLoopholeEntityPosition(this.#level.entrance);
-
+    #overlapsTimeMachine(
+        position: Position,
+        alignment: Loophole_EdgeAlignment | null,
+        timeMachinePos: Position,
+    ) {
         return (
-            positionsEqual(position, entrancePosition) ||
+            positionsEqual(position, timeMachinePos) ||
             (alignment === 'RIGHT' &&
                 positionsEqual(
                     {
                         x: position.x + 1,
                         y: position.y,
                     },
-                    entrancePosition,
+                    timeMachinePos,
                 )) ||
             (alignment === 'TOP' &&
                 positionsEqual(
@@ -868,7 +867,7 @@ export class LevelEditor extends Engine {
                         x: position.x,
                         y: position.y + 1,
                     },
-                    entrancePosition,
+                    timeMachinePos,
                 ))
         );
     }

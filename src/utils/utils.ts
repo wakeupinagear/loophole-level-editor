@@ -23,6 +23,7 @@ import type {
     Loophole_WireSprite,
     Loophole_Explosion,
     Loophole_Int,
+    Loophole_Level,
 } from './levelEditor/externalLevelSchema';
 import type { CameraData, Position } from './engine/types';
 import type { E_Tile } from './levelEditor/scenes/grid';
@@ -35,7 +36,6 @@ export type LoopholePositionType = 'CELL' | 'EDGE';
 
 const ENTITY_TYPE_DRAW_ORDER_LIST: Loophole_EntityType[] = [
     'WIRE',
-    'EXIT',
     'CLEANSING_POOL',
     'BUTTON',
     'MUSHROOM',
@@ -451,6 +451,18 @@ export const createLevelWithMetadata = (name: string, id?: string): Loophole_Int
     explosions: [],
     imageFile: '',
     updatedAt: Date.now(),
+});
+
+export const exportLoopholeInternalLevel = ({
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    entrance: { tID, ...entranceRest },
+    entities,
+    ...rest
+}: Loophole_InternalLevel): Loophole_Level => ({
+    ...rest,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    entities: entities.map(({ tID, ...rest }) => rest),
+    entrance: entranceRest,
 });
 
 export const loopholeRotationToDegrees = (rotation: Loophole_Rotation): number => {

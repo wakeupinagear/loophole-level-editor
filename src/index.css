@@ -10,6 +10,10 @@ body {
     font-family: 'Lexend Deca', sans-serif;
 }
 
+#engine-canvas {
+    background-color: var(--muted-foreground);
+}
+
 @custom-variant dark (&:is(.dark *));
 
 .pixelated-image {

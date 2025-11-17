@@ -419,8 +419,12 @@ export class Engine {
 
         const { x: canvasWidth, y: canvasHeight } = this.canvasSize;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.fillStyle = this.options.clearColor;
-        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        if (this.options.clearColor && this.options.clearColor !== 'transparent') {
+            ctx.fillStyle = this.options.clearColor;
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        } else {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        }
         ctx.translate(canvasWidth / 2, canvasHeight / 2);
 
         this._renderSystem.render(ctx, this._rootEntity, this._cameraSystem.camera);

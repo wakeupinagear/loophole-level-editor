@@ -35,6 +35,7 @@ import {
     COLOR_PALETTE_METADATA,
     createLevelWithMetadata,
     DEFAULT_LEVEL_NAME,
+    exportLoopholeInternalLevel,
     formatToSnakeCase,
     Loophole_ColorPalette,
 } from '@/utils/utils';
@@ -87,7 +88,7 @@ export default function TopPanel({ className }: TopPanelProps) {
     const levelName = name.trim() || DEFAULT_LEVEL_NAME;
 
     const downloadLevel = () => {
-        const level = currentLevel;
+        const level = exportLoopholeInternalLevel(currentLevel);
         const levelJSON = JSON.stringify(level, null, 2);
         const blob = new Blob([levelJSON], { type: 'application/json' });
         const url = URL.createObjectURL(blob);

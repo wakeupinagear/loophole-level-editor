@@ -64,7 +64,7 @@ export function LevelEditorComponent() {
 
     return (
         <div className={clsx('h-screen w-screen flex flex-col overflow-hidden', colorPaletteClass)}>
-            <div className="fixed top-0 left-0">
+            <div className="fixed top-0 left-0" id="engine-canvas">
                 <EngineCanvas
                     engineRef={levelEditorRef}
                     scrollDirection={scrollDirection}

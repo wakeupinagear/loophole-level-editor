@@ -117,13 +117,29 @@ class E_TileCursor extends Entity {
                 brushEntityType,
             );
             const cursorPosition = {
-                x: tilePosition.x + (edgeAlignment === 'RIGHT' ? 0.5 : 0),
-                y: tilePosition.y + (edgeAlignment === 'TOP' ? 0.5 : 0),
+                x:
+                    tilePosition.x +
+                    ((this.#dragEdgeAlignment ?? edgeAlignment) === 'RIGHT' ? 0.5 : 0),
+                y:
+                    tilePosition.y +
+                    ((this.#dragEdgeAlignment ?? edgeAlignment) === 'TOP' ? 0.5 : 0),
             };
-            this.#targetPosition = {
-                x: cursorPosition.x * TILE_SIZE,
-                y: cursorPosition.y * TILE_SIZE,
-            };
+            if (this.#dragPositionType === 'CELL' || !this.#dragStartTilePosition)
+                this.#targetPosition = {
+                    x: cursorPosition.x * TILE_SIZE,
+                    y: cursorPosition.y * TILE_SIZE,
+                };
+            else
+                this.#targetPosition =
+                    this.#dragEdgeAlignment === 'TOP'
+                        ? {
+                              x: tilePosition.x * TILE_SIZE,
+                              y: (this.#dragStartTilePosition.y + 0.5) * TILE_SIZE,
+                          }
+                        : {
+                              x: (this.#dragStartTilePosition.x + 0.5) * TILE_SIZE,
+                              y: tilePosition.y * TILE_SIZE,
+                          };
 
             let _brushEntityRotation = brushEntityRotation;
             let _brushEntityFlipDirection = brushEntityFlipDirection;
@@ -249,7 +265,6 @@ class E_TileCursor extends Entity {
         const tilesToPlace: Position[] = [];
 
         if (this.#dragPositionType === 'CELL') {
-            // CELL types: fill a rectangle (no directional constraint)
             const startX = Math.min(this.#dragStartTilePosition.x, currentTilePosition.x);
             const endX = Math.max(this.#dragStartTilePosition.x, currentTilePosition.x);
             const startY = Math.min(this.#dragStartTilePosition.y, currentTilePosition.y);
