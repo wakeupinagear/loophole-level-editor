@@ -12,6 +12,7 @@ import {
 import type { Loophole_EntityWithID, Loophole_ExtendedEntityType } from './externalLevelSchema';
 
 type Mode = 'brush' | 'tile';
+type Variant = 'default' | 'entrance' | 'exit' | 'explosion';
 
 interface TimeMachineDecals {
     arrow: C_Line;
@@ -20,6 +21,7 @@ interface TimeMachineDecals {
 
 interface E_EntityVisualOptions extends EntityOptions {
     mode: Mode;
+    variant?: Variant;
 }
 
 export class E_EntityVisual extends Entity {
@@ -29,6 +31,7 @@ export class E_EntityVisual extends Entity {
 
     #type: Loophole_ExtendedEntityType | null = null;
     #mode: Mode;
+    #variant: Variant;
 
     #timeMachineDecals: TimeMachineDecals | null = null;
 
@@ -41,13 +44,18 @@ export class E_EntityVisual extends Entity {
             style: {
                 imageSmoothingEnabled: false,
             },
+            zIndex: -1,
         });
         this.addComponents(this.#tileImage, ...(options.components ?? []));
 
         this.#mode = options.mode;
+        this.#variant = options.variant ?? 'default';
 
-        window.engine?.addColorPaletteChangedListener(this.id.toString(), (palette) =>
-            this.onColorPaletteChanged(palette),
+        window.engine?.addColorPaletteChangedListener(
+            this.id.toString(),
+            (palette: Loophole_ColorPalette) => {
+                this.onColorPaletteChanged.bind(this)(palette, this.#variant);
+            },
         );
     }
 
@@ -69,8 +77,24 @@ export class E_EntityVisual extends Entity {
         }
     }
 
+    get variant(): Variant {
+        return this.#variant;
+    }
+
+    set variant(variant: Variant) {
+        this.#variant = variant;
+        this.#timeMachineDecals?.walls.forEach((wall) => {
+            wall.setVariant(variant);
+        });
+    }
+
     setEntityType(type: Loophole_ExtendedEntityType, entity?: Loophole_EntityWithID): this {
         this.onEntityChanged(type, entity);
+        return this;
+    }
+
+    setVariant(variant: Variant): this {
+        this.#variant = variant;
         return this;
     }
 
@@ -109,7 +133,7 @@ export class E_EntityVisual extends Entity {
                         window.engine?.colorPalette !== null &&
                         window.engine?.colorPalette !== undefined
                     ) {
-                        this.onColorPaletteChanged(window.engine.colorPalette);
+                        this.onColorPaletteChanged(window.engine.colorPalette, this.#variant);
                     }
                     break;
                 }
@@ -125,9 +149,10 @@ export class E_EntityVisual extends Entity {
         }
     }
 
-    onColorPaletteChanged(palette: Loophole_ColorPalette) {
+    onColorPaletteChanged(palette: Loophole_ColorPalette, variant: Variant) {
         if (this.#type === 'WALL') {
-            this.#tileImage.imageName = COLOR_PALETTE_METADATA[palette].wallImage;
+            if (variant === 'entrance') this.#tileImage.imageName = ENTITY_METADATA['WALL'].name;
+            else this.#tileImage.imageName = COLOR_PALETTE_METADATA[palette].wallImage;
         }
     }
 
@@ -162,25 +187,30 @@ export class E_EntityVisual extends Entity {
                 style: { strokeStyle: 'white', lineWidth: 0.1, lineCap: 'round' },
             }).setEndTip({ type: 'arrow', length: 0.25 });
 
+            const wallVariant = this.#variant === 'entrance' ? 'entrance' : 'default';
             const walls = [
                 new E_EntityVisual({ mode: 'tile' })
                     .setEntityType('ONE_WAY')
                     .setPosition({ x: -0.5, y: 0 })
-                    .setZIndex(1),
+                    .setZIndex(1)
+                    .setVariant(wallVariant),
                 new E_EntityVisual({ mode: 'tile' })
                     .setEntityType('ONE_WAY')
                     .setPosition({ x: 0.5, y: 0 })
-                    .setZIndex(1),
+                    .setZIndex(1)
+                    .setVariant(wallVariant),
                 new E_EntityVisual({ mode: 'tile' })
                     .setEntityType('WALL')
                     .setPosition({ x: 0, y: 0.5 })
                     .setRotation(90)
-                    .setZIndex(1),
+                    .setZIndex(1)
+                    .setVariant(wallVariant),
                 new E_EntityVisual({ mode: 'tile' })
                     .setEntityType('WALL')
                     .setPosition({ x: 0, y: -0.5 })
                     .setRotation(90)
-                    .setZIndex(1),
+                    .setZIndex(1)
+                    .setVariant(wallVariant),
             ];
 
             this.addComponents(arrow);

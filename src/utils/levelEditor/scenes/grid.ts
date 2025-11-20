@@ -74,12 +74,16 @@ export class E_Tile extends Entity {
             style: {
                 imageSmoothingEnabled: false,
             },
-        }).setZIndex(10);
+            zIndex: 10,
+        });
         this.#positionLerp = new C_LerpPosition(this, 20);
         this.addComponents(this.#tileImage, this.#positionLerp);
 
         this.#highlightEntity = new E_TileHighlight(this).setZIndex(-1);
-        this.#entityVisual = new E_EntityVisual({ mode: 'tile' }).setZIndex(-1);
+        this.#entityVisual = new E_EntityVisual({
+            mode: 'tile',
+            zIndex: -1,
+        });
         this.#pointerParent = new Entity('pointer_parent');
         this.#highlightEntity.addEntities(this.#entityVisual, this.#pointerParent);
 
@@ -129,6 +133,7 @@ export class E_Tile extends Entity {
 
     set variant(variant: TileVariant) {
         this.#variant = variant;
+        this.#entityVisual.variant = variant;
     }
 
     get initialized(): boolean {

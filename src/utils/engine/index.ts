@@ -102,7 +102,7 @@ const DEFAULT_ENGINE_OPTIONS: EngineOptions = {
 
 export class Engine {
     protected static _nextId: number = 1;
-    protected readonly _id: number = Engine._nextId++;
+    protected readonly _id: string = (Engine._nextId++).toString();
 
     protected _canvas: HTMLCanvasElement | null = null;
     protected _options: EngineOptions = { ...DEFAULT_ENGINE_OPTIONS };
@@ -175,7 +175,7 @@ export class Engine {
         window.requestAnimationFrame(this.#engineLoop.bind(this));
     }
 
-    get id(): number {
+    get id(): string {
         return this._id;
     }
 

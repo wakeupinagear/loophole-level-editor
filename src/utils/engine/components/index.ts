@@ -11,7 +11,7 @@ export interface ComponentOptions {
 
 export abstract class Component implements Renderable {
     protected static _nextId: number = 1;
-    protected readonly _id: number = Component._nextId++;
+    protected readonly _id: string = (Component._nextId++).toString();
     protected readonly _name: string;
 
     protected _enabled: boolean = true;
@@ -30,7 +30,7 @@ export abstract class Component implements Renderable {
         this._zIndex = rest?.zIndex ?? 0;
     }
 
-    get id(): number {
+    get id(): string {
         return this._id;
     }
 

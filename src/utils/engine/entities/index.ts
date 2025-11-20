@@ -25,7 +25,7 @@ export interface EntityOptions {
 
 export class Entity implements Renderable {
     protected static _nextId: number = 1;
-    protected readonly _id: number = Entity._nextId++;
+    protected readonly _id: string = (Entity._nextId++).toString();
     protected readonly _name: string;
 
     protected _enabled: boolean = true;
@@ -69,7 +69,7 @@ export class Entity implements Renderable {
         });
     }
 
-    get id(): number {
+    get id(): string {
         return this._id;
     }
 
@@ -358,7 +358,7 @@ export class Entity implements Renderable {
         this._parent = null;
     }
 
-    #sortByZIndex<T extends { zIndex: number; id: number }>(a: T, b: T): number {
+    #sortByZIndex<T extends { zIndex: number; id: string }>(a: T, b: T): number {
         const zDiff = a.zIndex - b.zIndex;
         if (zDiff !== 0) {
             return zDiff;
