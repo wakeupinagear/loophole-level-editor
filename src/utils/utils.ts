@@ -48,6 +48,7 @@ const ENTITY_TYPE_DRAW_ORDER_LIST: Loophole_EntityType[] = [
     'SAUCE',
     'TIME_MACHINE',
     'EXPLOSION',
+    'EXIT',
 ] as const;
 export const ENTITY_TYPE_DRAW_ORDER: Record<Loophole_EntityType, number> =
     ENTITY_TYPE_DRAW_ORDER_LIST.reduce(

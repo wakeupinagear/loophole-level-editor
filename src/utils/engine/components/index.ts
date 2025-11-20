@@ -46,7 +46,7 @@ export abstract class Component implements Renderable {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    update(_: number): boolean {
+    update(_deltaTime: number): boolean {
         return false;
     }
 
@@ -58,7 +58,7 @@ export abstract class Component implements Renderable {
     queueRenderCommands(_out: RenderCommandStream, _camera: Camera): void {}
 
     setZIndex(zIndex: number): this {
-        if (this._zIndex !== zIndex) {
+        if (this._zIndex !== zIndex && !isNaN(zIndex)) {
             this._zIndex = zIndex;
             if (this._entity) {
                 this._entity.componentsZIndexDirty = true;

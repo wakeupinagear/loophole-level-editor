@@ -192,7 +192,7 @@ export class LevelEditor extends Engine {
         this.#colorPaletteChangedListeners.delete(id);
     }
 
-    override _update(): boolean {
+    override update(): boolean {
         const { cameraTarget, setCameraTarget, levels, activeLevelID } = getAppStore();
         if (cameraTarget) {
             this.cameraTarget = cameraTarget;

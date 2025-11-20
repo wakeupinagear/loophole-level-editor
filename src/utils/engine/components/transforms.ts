@@ -5,6 +5,7 @@ export class C_Transform extends Component {
     #position: Position = { x: 0, y: 0 };
     #rotation: number = 0;
     #scale: Position = { x: 1, y: 1 };
+    #scaleMult: Position = { x: 1, y: 1 };
     #localMatrix: DOMMatrix = new DOMMatrix();
     #localMatrixDirty: boolean = true;
 
@@ -37,6 +38,10 @@ export class C_Transform extends Component {
 
     get scale(): Readonly<Position> {
         return this.#scale;
+    }
+
+    get scaleMult(): Readonly<Position> {
+        return this.#scaleMult;
     }
 
     get worldScale(): Readonly<Position> {
@@ -84,6 +89,13 @@ export class C_Transform extends Component {
         }
     }
 
+    setScaleMult(scaleMult: Position): void {
+        if (scaleMult.x !== this.#scaleMult.x || scaleMult.y !== this.#scaleMult.y) {
+            this.#scaleMult = { ...scaleMult };
+            this.#markLocalDirty();
+        }
+    }
+
     translate(delta: Position): void {
         this.setPosition({
             x: this.#position.x + delta.x,
@@ -106,7 +118,10 @@ export class C_Transform extends Component {
         this.#localMatrix = new DOMMatrix();
         this.#localMatrix.translateSelf(this.#position.x, this.#position.y);
         this.#localMatrix.rotateSelf(this.#rotation);
-        this.#localMatrix.scaleSelf(this.#scale.x, this.#scale.y);
+        this.#localMatrix.scaleSelf(
+            this.#scale.x * this.#scaleMult.x,
+            this.#scale.y * this.#scaleMult.y,
+        );
         this.#localMatrixDirty = false;
         this.#worldMatrixDirty = true;
     }

@@ -382,15 +382,17 @@ export class Engine {
         this._systems = [];
     }
 
-    #update(deltaTime: number): boolean {
+    #engineUpdate(deltaTime: number): boolean {
         if (!this._rootEntity.enabled) {
             this.#updateTime = 0;
             return false;
         }
 
         const startTime = performance.now();
-        let updated = this._update(deltaTime);
-        updated = this._rootEntity.update(deltaTime) || updated;
+        let updated = this.update(deltaTime);
+        updated = this._rootEntity.engineUpdate(deltaTime) || updated;
+
+        this._rootEntity.engineLateUpdate(deltaTime, this);
 
         this.#updateTime = performance.now() - startTime;
 
@@ -398,7 +400,7 @@ export class Engine {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    protected _update(_deltaTime: number): boolean {
+    update(_deltaTime: number): boolean {
         return false;
     }
 
@@ -450,7 +452,7 @@ export class Engine {
         this._pointerSystem.update(deltaTime);
         const sceneUpdated = this._sceneSystem.update(deltaTime);
         const imagesUpdated = this._imageSystem.update();
-        const engineUpdated = this.#update(deltaTime);
+        const engineUpdated = this.#engineUpdate(deltaTime);
         const cameraUpdated = this._cameraSystem.update();
 
         const loadingImages = this._imageSystem.getLoadingImages();

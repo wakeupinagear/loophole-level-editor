@@ -4,6 +4,7 @@ import type { Camera, Position, RecursiveArray, Renderable } from '../types';
 import { C_Transform } from '../components/transforms';
 import type { Scene } from '../systems/scene';
 import { zoomToScale } from '../utils';
+import type { Engine } from '..';
 
 interface ScaleToCamera {
     x: boolean;
@@ -107,7 +108,7 @@ export class Entity implements Renderable {
         return this.#getComponentsInTree<T>(typeString).flat() as T[];
     }
 
-    update(deltaTime: number): boolean {
+    engineUpdate(deltaTime: number): boolean {
         let updated = this._updated;
         this._updated = false;
 
@@ -119,11 +120,34 @@ export class Entity implements Renderable {
 
         for (const child of this._children) {
             if (child.enabled) {
-                updated = child.update(deltaTime) || updated;
+                updated = child.engineUpdate(deltaTime) || updated;
             }
         }
 
+        updated = this.update(deltaTime) || updated;
+
         return updated;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    update(_deltaTime: number): boolean {
+        return false;
+    }
+
+    engineLateUpdate(_deltaTime: number, engine: Engine) {
+        for (const child of this._children) {
+            if (child.enabled) {
+                child.engineLateUpdate(_deltaTime, engine);
+            }
+        }
+
+        if (this._scaleToCamera.x || this._scaleToCamera.y) {
+            const scale = zoomToScale(engine.camera.zoom);
+            this.transform.setScaleMult({
+                x: this._scaleToCamera.x ? 1 / scale : 1,
+                y: this._scaleToCamera.y ? 1 / scale : 1,
+            });
+        }
     }
 
     destroy(): void {
@@ -192,7 +216,7 @@ export class Entity implements Renderable {
     }
 
     setZIndex(zIndex: number): this {
-        if (this._zIndex !== zIndex) {
+        if (this._zIndex !== zIndex && !isNaN(zIndex)) {
             this._zIndex = zIndex;
             if (this._parent) {
                 this._parent.childrenZIndexDirty = true;
@@ -262,15 +286,6 @@ export class Entity implements Renderable {
             this.#componentsZIndexDirty = false;
         }
 
-        const shouldScaleToCamera = this._scaleToCamera.x || this._scaleToCamera.y;
-        if (shouldScaleToCamera) {
-            const scale = zoomToScale(camera.zoom);
-            this.scaleBy({
-                x: this._scaleToCamera.x ? 1 / scale : 1,
-                y: this._scaleToCamera.y ? 1 / scale : 1,
-            });
-        }
-
         out.push(
             new RenderCommand(RENDER_CMD.PUSH_TRANSFORM, null, {
                 t: this._transform.localMatrix,
@@ -299,14 +314,6 @@ export class Entity implements Renderable {
         }
 
         out.push(new RenderCommand(RENDER_CMD.POP_TRANSFORM, null));
-
-        if (shouldScaleToCamera) {
-            const scale = zoomToScale(camera.zoom);
-            this.scaleBy({
-                x: this._scaleToCamera.x ? scale : 1,
-                y: this._scaleToCamera.y ? scale : 1,
-            });
-        }
     }
 
     #destroy(): void {
