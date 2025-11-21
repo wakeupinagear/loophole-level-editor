@@ -11,6 +11,7 @@ import type { Loophole_InternalLevel } from '@/utils/levelEditor/externalLevelSc
 import { COLOR_PALETTE_METADATA } from '@/utils/utils';
 import clsx from 'clsx';
 import { OpenInterfacePanel } from '../OpenInterfacePanel';
+import { ScrollArea } from '../ui/scroll-area';
 
 export function LevelEditorComponent() {
     const levelEditorRef = useRef<LevelEditor | null>(null);
@@ -80,11 +81,13 @@ export function LevelEditorComponent() {
                 )}
             >
                 <TopPanel className={panelClassName} />
-                <div className="h-full flex flex-col gap-4 max-w-54">
+                <div className="flex-1 flex flex-col gap-4 max-w-54 min-h-0">
                     <TilePicker className={panelClassName} />
-                    <LayerButtons groupClassName={panelClassName} />
+                    <ScrollArea className="flex-1 min-h-0">
+                        <LayerButtons groupClassName={panelClassName} />
+                    </ScrollArea>
                 </div>
-                <EntityInspector className={clsx('mt-auto w-fit', panelClassName)} />
+                <EntityInspector className={clsx('w-fit shrink-0', panelClassName)} />
                 <div
                     className={clsx('fixed bottom-4 right-4 text-right transition-opacity', {
                         'opacity-0': !showEngineStats,

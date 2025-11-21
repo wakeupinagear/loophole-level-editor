@@ -470,18 +470,18 @@ export const exportLoopholeInternalLevel = ({
 export const loopholeRotationToDegrees = (rotation: Loophole_Rotation): number => {
     switch (rotation) {
         case 'UP':
-            return 90;
+            return 270;
         case 'LEFT':
             return 180;
         case 'DOWN':
-            return 270;
+            return 90;
         case 'RIGHT':
         default:
             return 0;
     }
 };
 
-const LOOPHOLE_ROTATION_LIST: Loophole_Rotation[] = ['RIGHT', 'UP', 'LEFT', 'DOWN'];
+const LOOPHOLE_ROTATION_LIST: Loophole_Rotation[] = ['RIGHT', 'DOWN', 'LEFT', 'UP'];
 
 export const degreesToLoopholeRotation = (rotation: number): Loophole_Rotation => {
     return LOOPHOLE_ROTATION_LIST[Math.round((rotation % 360) / 90)];

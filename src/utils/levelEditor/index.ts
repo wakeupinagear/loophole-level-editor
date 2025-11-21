@@ -303,8 +303,9 @@ export class LevelEditor extends Engine {
         flipDirection: boolean,
         hash?: string | null,
     ): E_Tile[] {
-        if (this.entityCount >= MAX_ENTITY_COUNT) {
-            return Array.from(Object.values(getAppStore().selectedTiles));
+        const { selectedTiles, lockedLayers } = getAppStore();
+        if (this.entityCount >= MAX_ENTITY_COUNT || lockedLayers[entityType]) {
+            return Array.from(Object.values(selectedTiles));
         }
 
         const { createEntity, positionType } = ENTITY_METADATA[entityType];

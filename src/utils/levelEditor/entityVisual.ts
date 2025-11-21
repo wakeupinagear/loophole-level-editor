@@ -86,6 +86,9 @@ export class E_EntityVisual extends Entity {
         this.#timeMachineDecals?.walls.forEach((wall) => {
             wall.setVariant(variant);
         });
+        this.#timeMachineDecals?.walls[0].setEntityType(
+            this.#variant === 'entrance' ? 'WALL' : 'ONE_WAY',
+        );
     }
 
     setEntityType(type: Loophole_ExtendedEntityType, entity?: Loophole_EntityWithID): this {
@@ -190,7 +193,7 @@ export class E_EntityVisual extends Entity {
             const wallVariant = this.#variant === 'entrance' ? 'entrance' : 'default';
             const walls = [
                 new E_EntityVisual({ mode: 'tile' })
-                    .setEntityType('ONE_WAY')
+                    .setEntityType(this.#variant === 'entrance' ? 'WALL' : 'ONE_WAY')
                     .setPosition({ x: -0.5, y: 0 })
                     .setZIndex(1)
                     .setVariant(wallVariant),
